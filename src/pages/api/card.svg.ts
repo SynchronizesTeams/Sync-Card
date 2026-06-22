@@ -127,8 +127,19 @@ export const GET: APIRoute = async ({ request }) => {
         const response = await fetch(gambarUrl);
         if (response.ok) {
           const arrayBuffer = await response.arrayBuffer();
-          const contentType = response.headers.get('content-type') || 'image/png';
-          const base64 = Buffer.from(arrayBuffer).toString('base64');
+          const buffer = Buffer.from(arrayBuffer);
+          
+          // Detect mime type from file signature magic bytes
+          let contentType = response.headers.get('content-type') || 'image/png';
+          if (buffer.length > 3 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
+            contentType = 'image/gif';
+          } else if (buffer.length > 4 && buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+            contentType = 'image/png';
+          } else if (buffer.length > 2 && buffer[0] === 0xFF && buffer[1] === 0xD8) {
+            contentType = 'image/jpeg';
+          }
+          
+          const base64 = buffer.toString('base64');
           avatarBase64 = `data:${contentType};base64,${base64}`;
         }
       } catch (error) {
@@ -244,7 +255,7 @@ export const GET: APIRoute = async ({ request }) => {
 
   if (isLandscape) {
     // Landscape SVG layout (620x320)
-    svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 320" width="620" height="320" fill="none">
+    svgContent = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 620 320" width="620" height="320" fill="none">
       <defs>
         <!-- Background grid pattern -->
         <pattern id="card-grid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -254,7 +265,7 @@ export const GET: APIRoute = async ({ request }) => {
         <!-- Avatar image pattern (acts as a robust clipping container with zoom/pan transforms) -->
         ${avatarBase64 ? `
         <pattern id="avatar-pattern" x="21" y="57" width="120" height="200" patternUnits="userSpaceOnUse">
-          <image href="${avatarBase64}" x="0" y="0" width="120" height="200" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="60 100" />
+          <image href="${avatarBase64}" xlink:href="${avatarBase64}" x="0" y="0" width="120" height="200" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="60 100" />
         </pattern>` : ''}
 
         <!-- Dark Mode Invert Filter for Logo -->
@@ -335,7 +346,7 @@ export const GET: APIRoute = async ({ request }) => {
     </svg>`;
   } else {
     // Portrait SVG layout (420x490)
-    svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 490" width="420" height="490" fill="none">
+    svgContent = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 420 490" width="420" height="490" fill="none">
       <defs>
         <!-- Background grid pattern -->
         <pattern id="card-grid" width="20" height="20" patternUnits="userSpaceOnUse">
@@ -345,7 +356,7 @@ export const GET: APIRoute = async ({ request }) => {
         <!-- Avatar image pattern (acts as a robust clipping container with zoom/pan transforms) -->
         ${avatarBase64 ? `
         <pattern id="avatar-pattern" x="221" y="80" width="156" height="295" patternUnits="userSpaceOnUse">
-          <image href="${avatarBase64}" x="0" y="0" width="156" height="295" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="78 147.5" />
+          <image href="${avatarBase64}" xlink:href="${avatarBase64}" x="0" y="0" width="156" height="295" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="78 147.5" />
         </pattern>` : ''}
 
         <!-- Dark Mode Invert Filter for Logo -->
