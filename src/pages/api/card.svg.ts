@@ -117,10 +117,25 @@ export const GET: APIRoute = async ({ request }) => {
     console.error('Error reading logo image:', err);
   }
 
-  // Handle avatar image embedding (fetch from web or read base64 raw)
+  // Handle avatar image embedding (fetch from web, read base64 raw, or load path from SQLite images.db)
   let avatarBase64 = defaultFaceBase64;
   if (gambarUrl) {
-    if (gambarUrl.startsWith('data:image/')) {
+    if (gambarUrl.startsWith('db:')) {
+      const id = gambarUrl.substring(3);
+      try {
+        const { getDb } = await import('../../utils/db');
+        const db = getDb();
+        const stmt = db.prepare('SELECT file_path, mime_type FROM images WHERE id = ?');
+        const row = stmt.get(id) as { file_path: string, mime_type: string } | undefined;
+        
+        if (row && fs.existsSync(row.file_path)) {
+          const buffer = fs.readFileSync(row.file_path);
+          avatarBase64 = `data:${row.mime_type};base64,${buffer.toString('base64')}`;
+        }
+      } catch (error) {
+        console.error('Failed to retrieve image from SQLite database:', id, error);
+      }
+    } else if (gambarUrl.startsWith('data:image/')) {
       avatarBase64 = gambarUrl;
     } else {
       try {

@@ -296,79 +296,51 @@
     let originalBase64 = ''; // Holds resized uploaded image
     let currentFile = null;
 
+    async function uploadImage(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+      const data = await res.json();
+      return data.id;
+    }
+
     fileTriggerBtn.addEventListener('click', () => fileInput.click());
 
-    fileInput.addEventListener('change', (e) => {
+    fileInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
       currentFile = file;
-      const reader = new FileReader();
+      try {
+        fileTriggerBtn.textContent = 'UPLOADING...';
+        fileTriggerBtn.disabled = true;
 
-      if (file.type === 'image/gif') {
-        reader.onload = (event) => {
-          uploadedBase64 = event.target.result;
-          originalBase64 = uploadedBase64;
+        const id = await uploadImage(file);
+        uploadedBase64 = 'db:' + id;
+        originalBase64 = uploadedBase64;
 
-          // Reset Zoom and Pan Sliders to default center (1.0x, 0px, 0px) for custom upload
-          inputs.scale.value = "1.0";
-          inputs.panX.value = "0";
-          inputs.panY.value = "0";
-          updateSliderLabels();
-          updateAvatarTransformClient(0, 0, 1.0);
+        // Reset Zoom and Pan Sliders to default center (1.0x, 0px, 0px) for custom upload
+        inputs.scale.value = "1.0";
+        inputs.panX.value = "0";
+        inputs.panY.value = "0";
+        updateSliderLabels();
+        updateAvatarTransformClient(0, 0, 1.0);
 
-          fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
-          fileClearBtn.classList.remove('hidden');
-          updatePreview();
-        };
-        reader.readAsDataURL(file);
-      } else {
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            // Resize cover fit to exactly 156x295 (max dimensions of portrait card container)
-            const canvas = document.createElement('canvas');
-            canvas.width = 156;
-            canvas.height = 295;
-            const ctx = canvas.getContext('2d');
-            
-            const imgAspect = img.width / img.height;
-            const canvasAspect = canvas.width / canvas.height;
-            let drawWidth = canvas.width;
-            let drawHeight = canvas.height;
-            let offsetX = 0;
-            let offsetY = 0;
-            
-            if (imgAspect > canvasAspect) {
-              drawWidth = canvas.height * imgAspect;
-              offsetX = -(drawWidth - canvas.width) / 2;
-            } else {
-              drawHeight = canvas.width / imgAspect;
-              offsetY = -(drawHeight - canvas.height) / 2;
-            }
-            
-            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-            
-            const isPng = file.type === 'image/png';
-            const exportType = isPng ? 'image/png' : 'image/jpeg';
-
-            originalBase64 = canvas.toDataURL(exportType, isPng ? undefined : 0.7);
-            uploadedBase64 = originalBase64;
-
-            // Reset Zoom and Pan Sliders to default center (1.0x, 0px, 0px) for custom upload
-            inputs.scale.value = "1.0";
-            inputs.panX.value = "0";
-            inputs.panY.value = "0";
-            updateSliderLabels();
-            updateAvatarTransformClient(0, 0, 1.0);
-
-            fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
-            fileClearBtn.classList.remove('hidden');
-            updatePreview();
-          };
-          img.src = event.target.result;
-        };
-        reader.readAsDataURL(file);
+        fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
+        fileTriggerBtn.disabled = false;
+        fileClearBtn.classList.remove('hidden');
+        updatePreview();
+      } catch (err) {
+        console.error('File upload failed:', err);
+        fileTriggerBtn.textContent = 'ERROR!';
+        fileTriggerBtn.disabled = false;
       }
     });
 
