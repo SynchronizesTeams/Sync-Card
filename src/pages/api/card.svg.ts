@@ -278,10 +278,11 @@ export const GET: APIRoute = async ({ request }) => {
         </pattern>
         
         <!-- Avatar image pattern (acts as a robust clipping container with zoom/pan transforms) -->
-        ${avatarBase64 ? `
+        ${avatarBase64 ? (avatarBase64.startsWith('data:image/gif') ? `
+        <image href="${avatarBase64}" x="21" y="57" width="120" height="200" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" />` : `
         <pattern id="avatar-pattern" x="21" y="57" width="120" height="200" patternUnits="userSpaceOnUse">
           <image href="${avatarBase64}" xlink:href="${avatarBase64}" x="0" y="0" width="120" height="200" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="60 100" />
-        </pattern>` : ''}
+        </pattern>`) : ''}
 
         <!-- Dark Mode Invert Filter for Logo -->
         ${isDark ? `
@@ -314,7 +315,7 @@ export const GET: APIRoute = async ({ request }) => {
       <!-- Image Background (Fills with custom color imgBg) -->
       <rect x="21" y="57" width="120" height="200" rx="12" fill="${imgBg}" />
       <!-- Image body filled with pattern to guarantee perfect overflow clipping in sandboxed contexts -->
-      <rect x="21" y="57" width="120" height="200" rx="12" fill="url(#avatar-pattern)" stroke="${strokeColor}" stroke-width="3" />
+      <rect x="21" y="57" width="120" height="200" rx="12" fill="${avatarBase64 && avatarBase64.startsWith('data:image/gif') ? 'none' : 'url(#avatar-pattern)'}" stroke="${strokeColor}" stroke-width="3" />
 
       <!-- Middle Column (Profile Info) -->
       <!-- Logo -->
@@ -369,10 +370,11 @@ export const GET: APIRoute = async ({ request }) => {
         </pattern>
         
         <!-- Avatar image pattern (acts as a robust clipping container with zoom/pan transforms) -->
-        ${avatarBase64 ? `
+        ${avatarBase64 ? (avatarBase64.startsWith('data:image/gif') ? `
+        <image href="${avatarBase64}" x="221" y="80" width="156" height="295" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" />` : `
         <pattern id="avatar-pattern" x="221" y="80" width="156" height="295" patternUnits="userSpaceOnUse">
           <image href="${avatarBase64}" xlink:href="${avatarBase64}" x="0" y="0" width="156" height="295" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="78 147.5" />
-        </pattern>` : ''}
+        </pattern>`) : ''}
 
         <!-- Dark Mode Invert Filter for Logo -->
         ${isDark ? `
