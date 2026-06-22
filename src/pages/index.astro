@@ -1,0 +1,733 @@
+---
+// Astro preview and configuration landing page
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ID Card Generator / SynchronizeTeams</title>
+  <meta name="description" content="Configure and generate your custom neubrutalist ID Card SVG for GitHub README.">
+  
+  <!-- Modern Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS v4 CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+  <style type="text/css">
+    :root {
+      --color-ink: #111111;
+      --color-canvas: #ffffff;
+      --font-poppins: 'Poppins', system-ui, -apple-system, sans-serif;
+      --font-mono: 'Space Mono', monospace;
+    }
+
+    body {
+      font-family: var(--font-poppins);
+      background-color: #f3f4f6;
+      color: var(--color-ink);
+    }
+
+    .neo-border {
+      border: 3px solid var(--color-ink);
+    }
+
+    .neo-shadow {
+      box-shadow: 8px 8px 0px 0px var(--color-ink);
+    }
+    
+    .neo-shadow-sm {
+      box-shadow: 4px 4px 0px 0px var(--color-ink);
+    }
+
+    .neo-btn {
+      border: 3px solid var(--color-ink);
+      box-shadow: 4px 4px 0px 0px var(--color-ink);
+      transition: all 0.15s ease;
+    }
+    
+    .neo-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0px 0px var(--color-ink);
+    }
+
+    /* Custom Neubrutalist Toggle Checkboxes */
+    .neo-checkbox {
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--color-ink);
+      border-radius: 6px;
+      outline: none;
+      cursor: pointer;
+      position: relative;
+      background-color: white;
+      box-shadow: 2px 2px 0px 0px var(--color-ink);
+      transition: all 0.1s ease;
+    }
+
+    .neo-checkbox:checked {
+      background-color: #22c55e; /* Green */
+    }
+
+    .neo-checkbox:checked::after {
+      content: '✓';
+      position: absolute;
+      top: -2px;
+      left: 3px;
+      color: white;
+      font-size: 16px;
+      font-weight: 900;
+    }
+
+    .neo-checkbox:disabled {
+      background-color: #e5e7eb;
+      cursor: not-allowed;
+      box-shadow: none;
+      border-color: #9ca3af;
+    }
+
+    .neo-checkbox:active:not(:disabled) {
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px 0px var(--color-ink);
+    }
+  </style>
+</head>
+<body class="min-h-screen py-8 px-4 md:px-8 selection:bg-rose-500 selection:text-white">
+
+  <div class="max-w-6xl mx-auto flex flex-col gap-8">
+    
+
+
+    <!-- Main Content -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      
+      <!-- Left: Configurations Form -->
+      <section class="lg:col-span-7 bg-white rounded-2xl neo-border neo-shadow p-6 md:p-8 flex flex-col gap-6">
+        <div>
+          <h2 class="font-black text-2xl uppercase">Configure Your Card</h2>
+          <p class="text-sm text-gray-500 mt-1">Customize details below to generate your custom SVG badge.</p>
+        </div>
+
+        <form id="config-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Nama -->
+          <div class="flex flex-col gap-1">
+            <label class="font-mono text-xs font-bold uppercase">Name</label>
+            <input type="text" id="input-nama" value="John Doe" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
+          </div>
+
+          <!-- Role -->
+          <div class="flex flex-col gap-1">
+            <label class="font-mono text-xs font-bold uppercase">Role / Subtitle</label>
+            <input type="text" id="input-role" value="Software Engineer" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
+          </div>
+
+          <!-- QR Value -->
+          <div class="flex flex-col gap-1 md:col-span-2">
+            <label class="font-mono text-xs font-bold uppercase">QR Code Destination</label>
+            <input type="text" id="input-qr" value="https://github.com/johndoe" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
+          </div>
+
+          <!-- Avatar Image Source -->
+          <div class="flex flex-col gap-1 md:col-span-2">
+            <label class="font-mono text-xs font-bold uppercase">Avatar Image Source</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="flex flex-col gap-1">
+                <span class="text-[10px] text-gray-400 font-bold uppercase">Option A: Image URL</span>
+                <input type="url" id="input-gambar" placeholder="https://github.com/username.png" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="text-[10px] text-gray-400 font-bold uppercase">Option B: Upload File</span>
+                <div class="flex items-center gap-2">
+                  <input type="file" id="input-file" accept="image/*" class="hidden" />
+                  <button type="button" id="file-trigger-btn" class="neo-btn bg-amber-200 hover:bg-amber-300 px-4 py-2.5 rounded-lg text-xs font-bold cursor-pointer w-full text-center">
+                    CHOOSE FILE...
+                  </button>
+                  <button type="button" id="file-clear-btn" class="neo-btn bg-rose-400 hover:bg-rose-500 px-3 py-2.5 rounded-lg text-xs font-bold cursor-pointer hidden">
+                    CLEAR
+                  </button>
+                </div>
+              </div>
+            </div>
+            <span class="text-[10px] text-gray-400 mt-1">If both are provided, the uploaded file is preferred. Large images will be scaled down for optimized embedding.</span>
+          </div>
+
+          <!-- Image Zoom and Pan Sliders -->
+          <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-black border-dashed pt-4 mt-2">
+            <div class="flex flex-col gap-1">
+              <label class="font-mono text-xs font-bold uppercase flex justify-between">
+                <span>Zoom (Scale)</span>
+                <span id="label-scale" class="text-blue-600 font-black">1.33x</span>
+              </label>
+              <input type="range" id="input-scale" min="0.5" max="3.0" step="0.05" value="1.33" class="w-full accent-black cursor-pointer" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="font-mono text-xs font-bold uppercase flex justify-between">
+                <span>Pan X (Horizontal)</span>
+                <span id="label-pan-x" class="text-blue-600 font-black">-26px</span>
+              </label>
+              <input type="range" id="input-pan-x" min="-150" max="150" step="1" value="-26" class="w-full accent-black cursor-pointer" />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="font-mono text-xs font-bold uppercase flex justify-between">
+                <span>Pan Y (Vertical)</span>
+                <span id="label-pan-y" class="text-blue-600 font-black">0px</span>
+              </label>
+              <input type="range" id="input-pan-y" min="-150" max="150" step="1" value="0" class="w-full accent-black cursor-pointer" />
+            </div>
+          </div>
+
+          <!-- Photo Background Color Picker -->
+          <div class="flex flex-col gap-1 md:col-span-2 border-t border-black border-dashed pt-4 mt-2">
+            <label class="font-mono text-xs font-bold uppercase">Photo Background Color</label>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <input type="color" id="input-img-bg" value="#fca2a2" class="neo-border p-1 rounded-lg cursor-pointer h-11 w-20 bg-white" />
+              <div class="flex flex-wrap gap-2" id="preset-colors">
+                <button type="button" data-color="#a2c2fc" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#a2c2fc]" title="Blue"></button>
+                <button type="button" data-color="#fca2a2" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#fca2a2]" title="Rose"></button>
+                <button type="button" data-color="#a2fca2" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#a2fca2]" title="Green"></button>
+                <button type="button" data-color="#fca2fc" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#fca2fc]" title="Purple"></button>
+                <button type="button" data-color="#fef08a" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#fef08a]" title="Yellow"></button>
+                <button type="button" data-color="#3b82f6" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#3b82f6]" title="Dark Blue"></button>
+                <button type="button" data-color="#ffffff" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#ffffff]" title="White"></button>
+              </div>
+            </div>
+          </div>
+
+
+
+          <!-- Tags -->
+          <div class="flex flex-col gap-1 md:col-span-2 border-t border-black border-dashed pt-4 mt-2">
+            <label class="font-mono text-xs font-bold uppercase">Tags (comma separated)</label>
+            <input type="text" id="input-tags" value="HTML, CSS, JavaScript, React" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
+          </div>
+
+          <!-- Instagram -->
+          <div class="flex flex-col gap-1">
+            <label class="font-mono text-xs font-bold uppercase">Instagram</label>
+            <input type="text" id="input-ig" value="@johndoe" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
+          </div>
+
+          <!-- Website -->
+          <div class="flex flex-col gap-1">
+            <label class="font-mono text-xs font-bold uppercase">Website Domain</label>
+            <input type="text" id="input-website" value="johndoe.com" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
+          </div>
+
+          <!-- Toggle Options (Darkmode & Landscape) -->
+          <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 border-t border-black border-dashed pt-4">
+            <!-- Dark Mode Toggle -->
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+              <input type="checkbox" id="input-dark" class="neo-checkbox" />
+              <span class="font-mono text-sm font-bold uppercase">Enable Dark Mode</span>
+            </label>
+
+            <!-- Landscape Mode Toggle -->
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+              <input type="checkbox" id="input-landscape" class="neo-checkbox" />
+              <span class="font-mono text-sm font-bold uppercase">Landscape Layout</span>
+            </label>
+          </div>
+        </form>
+
+        <!-- Markdown Code block -->
+        <div class="flex flex-col gap-2 mt-4 pt-4 border-t-2 border-black border-dashed">
+          <div class="flex justify-between items-center">
+            <label class="font-mono text-xs font-bold uppercase">GitHub Markdown Embed</label>
+            <button id="copy-btn" class="neo-btn bg-emerald-400 text-black px-3 py-1 rounded-lg text-xs font-bold cursor-pointer">
+              COPY CODE
+            </button>
+          </div>
+          <div class="neo-border rounded-lg bg-gray-900 p-3 relative">
+            <code id="embed-code" class="font-mono text-xs text-gray-200 break-all select-all">Loading...</code>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Live Preview -->
+      <section class="lg:col-span-5 flex flex-col items-center gap-4 w-full">
+        <span class="font-mono text-xs font-bold uppercase text-gray-400">Live Preview</span>
+        
+        <!-- Preview Box -->
+        <div class="w-full flex justify-center p-6 bg-white rounded-2xl neo-border neo-shadow relative min-h-[480px] items-center">
+          <img id="card-preview" src="" alt="Live Card Preview" class="max-w-full h-auto object-contain select-none drop-shadow-md" />
+        </div>
+        
+        <span class="text-xs text-gray-400 text-center">Images are fetched and base64-encoded on the server so they display correctly on GitHub.</span>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script type="text/javascript">
+    const form = document.getElementById('config-form');
+    const inputs = {
+      nama: document.getElementById('input-nama'),
+      role: document.getElementById('input-role'),
+      qr: document.getElementById('input-qr'),
+      gambar: document.getElementById('input-gambar'),
+      tags: document.getElementById('input-tags'),
+      ig: document.getElementById('input-ig'),
+      website: document.getElementById('input-website'),
+      dark: document.getElementById('input-dark'),
+      landscape: document.getElementById('input-landscape'),
+      scale: document.getElementById('input-scale'),
+      panX: document.getElementById('input-pan-x'),
+      panY: document.getElementById('input-pan-y'),
+      imgBg: document.getElementById('input-img-bg')
+    };
+    const cardPreview = document.getElementById('card-preview');
+    const embedCode = document.getElementById('embed-code');
+    const copyBtn = document.getElementById('copy-btn');
+
+    // Local file upload elements
+    const fileInput = document.getElementById('input-file');
+    const fileTriggerBtn = document.getElementById('file-trigger-btn');
+    const fileClearBtn = document.getElementById('file-clear-btn');
+    
+    // Sliders Labels
+    const labelScale = document.getElementById('label-scale');
+    const labelPanX = document.getElementById('label-pan-x');
+    const labelPanY = document.getElementById('label-pan-y');
+
+    let uploadedBase64 = '';
+    let originalBase64 = ''; // Holds resized uploaded image
+    let currentFile = null;
+
+    async function uploadImage(blobOrFile, isPng = false) {
+      const formData = new FormData();
+      const filename = isPng ? 'avatar.png' : 'avatar.jpg';
+      const type = isPng ? 'image/png' : 'image/jpeg';
+      const fileObj = new File([blobOrFile], filename, { type });
+      formData.append('file', fileObj);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      if (!res.ok) {
+        throw new Error('Upload failed');
+      }
+      const data = await res.json();
+      return data.id;
+    }
+
+    fileTriggerBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      currentFile = file;
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          // Resize cover fit to exactly 156x295 (max dimensions of portrait card container)
+          const canvas = document.createElement('canvas');
+          canvas.width = 156;
+          canvas.height = 295;
+          const ctx = canvas.getContext('2d');
+          
+          const imgAspect = img.width / img.height;
+          const canvasAspect = canvas.width / canvas.height;
+          let drawWidth = canvas.width;
+          let drawHeight = canvas.height;
+          let offsetX = 0;
+          let offsetY = 0;
+          
+          if (imgAspect > canvasAspect) {
+            drawWidth = canvas.height * imgAspect;
+            offsetX = -(drawWidth - canvas.width) / 2;
+          } else {
+            drawHeight = canvas.width / imgAspect;
+            offsetY = -(drawHeight - canvas.height) / 2;
+          }
+          
+          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+          
+          const isPng = file.type === 'image/png';
+          const exportType = isPng ? 'image/png' : 'image/jpeg';
+
+          // Convert canvas to blob and upload to SQLite DB
+          canvas.toBlob(async (blob) => {
+            if (!blob) return;
+            try {
+              fileTriggerBtn.textContent = 'UPLOADING...';
+              fileTriggerBtn.disabled = true;
+              const id = await uploadImage(blob, isPng);
+              
+              // Store db:id instead of base64 to keep query parameters short!
+              uploadedBase64 = 'db:' + id;
+              originalBase64 = uploadedBase64;
+
+              // Reset Zoom and Pan Sliders to default (1.0x, 0px, 0px) for custom upload
+              inputs.scale.value = "1.0";
+              inputs.panX.value = "0";
+              inputs.panY.value = "0";
+              updateSliderLabels();
+              
+              fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
+              fileTriggerBtn.disabled = false;
+              fileClearBtn.classList.remove('hidden');
+              updatePreview();
+            } catch (err) {
+              console.error('SQLite upload failed, falling back to base64:', err);
+              // Fallback to base64
+              originalBase64 = canvas.toDataURL(exportType, isPng ? undefined : 0.7);
+              uploadedBase64 = originalBase64;
+              
+              inputs.scale.value = "1.0";
+              inputs.panX.value = "0";
+              inputs.panY.value = "0";
+              updateSliderLabels();
+              
+              fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
+              fileTriggerBtn.disabled = false;
+              fileClearBtn.classList.remove('hidden');
+              updatePreview();
+            }
+          }, exportType, isPng ? undefined : 0.7);
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    fileClearBtn.addEventListener('click', () => {
+      fileInput.value = '';
+      currentFile = null;
+      uploadedBase64 = '';
+      originalBase64 = '';
+      
+      fileTriggerBtn.textContent = 'CHOOSE FILE...';
+      fileClearBtn.classList.add('hidden');
+
+      // Reset Zoom and Pan Sliders to presets for default avatar
+      inputs.scale.value = "1.33";
+      inputs.panX.value = "-26";
+      inputs.panY.value = "0";
+      updateSliderLabels();
+
+      updatePreview();
+    });
+
+    // Preset color buttons handler
+    const presetColors = document.querySelectorAll('#preset-colors button');
+    presetColors.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const color = btn.getAttribute('data-color');
+        inputs.imgBg.value = color;
+        updatePreview();
+      });
+    });
+
+    // Slider text labels updates
+    function updateSliderLabels() {
+      labelScale.textContent = `${parseFloat(inputs.scale.value).toFixed(2)}x`;
+      labelPanX.textContent = `${inputs.panX.value}px`;
+      labelPanY.textContent = `${inputs.panY.value}px`;
+    }
+
+    // Bind event listeners to sliders
+    ['scale', 'panX', 'panY'].forEach(key => {
+      inputs[key].addEventListener('input', () => {
+        updateSliderLabels();
+        updatePreview();
+      });
+    });
+
+    function getBaseUrl() {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return window.location.origin;
+      }
+      return 'https://card.synchronizeteams.com';
+    }
+
+    function updatePreview() {
+      const params = new URLSearchParams();
+      
+      if (inputs.nama.value.trim()) params.append('nama', inputs.nama.value.trim());
+      if (inputs.role.value.trim()) params.append('role', inputs.role.value.trim());
+      if (inputs.qr.value.trim()) params.append('qr', inputs.qr.value.trim());
+      
+      // Use uploaded base64 if present, otherwise use URL
+      if (uploadedBase64) {
+        params.append('gambar', uploadedBase64);
+      } else if (inputs.gambar.value.trim()) {
+        params.append('gambar', inputs.gambar.value.trim());
+      }
+      
+      // Sliders & Custom Colors parameters
+      params.append('img_scale', inputs.scale.value);
+      params.append('img_x', inputs.panX.value);
+      params.append('img_y', inputs.panY.value);
+      
+      // Pass img_bg without the # character to keep URL clean and prevent parsing issues
+      const cleanColor = inputs.imgBg.value.replace('#', '');
+      params.append('img_bg', cleanColor);
+
+      if (inputs.tags.value.trim()) params.append('tags', inputs.tags.value.trim());
+      if (inputs.ig.value.trim()) params.append('ig', inputs.ig.value.trim());
+      if (inputs.website.value.trim()) params.append('website', inputs.website.value.trim());
+      if (inputs.dark.checked) params.append('dark', 'true');
+      if (inputs.landscape.checked) params.append('landscape', 'true');
+
+      const queryStr = params.toString();
+      const previewUrl = `/api/card.svg?${queryStr}`;
+      const fullUrl = `${getBaseUrl()}${previewUrl}`;
+
+      // Update image src
+      cardPreview.src = previewUrl;
+
+      // Update markdown embed code
+      const mdCode = `![My ID Card](${fullUrl})`;
+      embedCode.textContent = mdCode;
+    }
+
+    // Bind event listeners to standard inputs & toggles
+    ['nama', 'role', 'qr', 'gambar', 'tags', 'ig', 'website', 'imgBg'].forEach(key => {
+      inputs[key].addEventListener('input', updatePreview);
+    });
+    
+    ['dark', 'landscape'].forEach(key => {
+      inputs[key].addEventListener('change', updatePreview);
+    });
+
+    // Copy to clipboard logic
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(embedCode.textContent).then(() => {
+        copyBtn.textContent = 'COPIED!';
+        copyBtn.classList.remove('bg-emerald-400');
+        copyBtn.classList.add('bg-white');
+        setTimeout(() => {
+          copyBtn.textContent = 'COPY CODE';
+          copyBtn.classList.remove('bg-white');
+          copyBtn.classList.add('bg-emerald-400');
+        }, 1500);
+      });
+    });
+
+    // --- Interactive Drag & Zoom directly on Card Preview ---
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startPanX = 0;
+    let startPanY = 0;
+
+    // Helper to determine if cursor is over the avatar container in SVG coordinates
+    function isOverAvatar(clientX, clientY) {
+      const rect = cardPreview.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return false;
+
+      const isLandscape = inputs.landscape.checked;
+      const svgWidth = isLandscape ? 620 : 420;
+      const svgHeight = isLandscape ? 320 : 490;
+      const svgAspect = svgWidth / svgHeight;
+      const containerAspect = rect.width / rect.height;
+
+      let renderedWidth = rect.width;
+      let renderedHeight = rect.height;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (containerAspect > svgAspect) {
+        // Pillarboxed
+        renderedWidth = rect.height * svgAspect;
+        offsetX = (rect.width - renderedWidth) / 2;
+      } else {
+        // Letterboxed
+        renderedHeight = rect.width / svgAspect;
+        offsetY = (rect.height - renderedHeight) / 2;
+      }
+
+      // Mouse coordinates relative to actual rendered SVG bounds
+      const localX = (clientX - (rect.left + offsetX)) * (svgWidth / renderedWidth);
+      const localY = (clientY - (rect.top + offsetY)) * (svgHeight / renderedHeight);
+
+      if (isLandscape) {
+        // Landscape avatar box: X: 21 to 141, Y: 57 to 257
+        return localX >= 21 && localX <= 141 && localY >= 57 && localY <= 257;
+      } else {
+        // Portrait avatar box: X: 221 to 377, Y: 80 to 375
+        return localX >= 221 && localX <= 377 && localY >= 80 && localY <= 375;
+      }
+    }
+
+    // Change cursor to 'grab' when hovering over the avatar container
+    cardPreview.addEventListener('mousemove', (e) => {
+      if (isDragging) return;
+      if (isOverAvatar(e.clientX, e.clientY)) {
+        cardPreview.style.cursor = 'grab';
+      } else {
+        cardPreview.style.cursor = 'default';
+      }
+    });
+
+    // Start dragging
+    cardPreview.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return; // only left click
+      if (isOverAvatar(e.clientX, e.clientY)) {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startPanX = parseFloat(inputs.panX.value) || 0;
+        startPanY = parseFloat(inputs.panY.value) || 0;
+        cardPreview.style.cursor = 'grabbing';
+        e.preventDefault();
+      }
+    });
+
+    // Handle drag movement
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+
+      const rect = cardPreview.getBoundingClientRect();
+      if (rect.width === 0) return;
+
+      const isLandscape = inputs.landscape.checked;
+      const svgWidth = isLandscape ? 620 : 420;
+      const svgHeight = isLandscape ? 320 : 490;
+      const svgAspect = svgWidth / svgHeight;
+      const containerAspect = rect.width / rect.height;
+
+      let renderedWidth = rect.width;
+      let renderedHeight = rect.height;
+      if (containerAspect > svgAspect) {
+        renderedWidth = rect.height * svgAspect;
+      } else {
+        renderedHeight = rect.width / svgAspect;
+      }
+
+      const scaleX = svgWidth / renderedWidth;
+      const scaleY = svgHeight / renderedHeight;
+
+      const dx = (e.clientX - startX) * scaleX;
+      const dy = (e.clientY - startY) * scaleY;
+
+      let newPanX = Math.round(startPanX + dx);
+      let newPanY = Math.round(startPanY + dy);
+
+      // Clamp within input slider min/max
+      const minX = parseInt(inputs.panX.min) || -150;
+      const maxX = parseInt(inputs.panX.max) || 150;
+      const minY = parseInt(inputs.panY.min) || -150;
+      const maxY = parseInt(inputs.panY.max) || 150;
+
+      newPanX = Math.max(minX, Math.min(maxX, newPanX));
+      newPanY = Math.max(minY, Math.min(maxY, newPanY));
+
+      inputs.panX.value = newPanX;
+      inputs.panY.value = newPanY;
+
+      updateSliderLabels();
+      updatePreview();
+    });
+
+    // End dragging
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        cardPreview.style.cursor = 'grab';
+      }
+    });
+
+    // Mouse wheel zoom
+    cardPreview.addEventListener('wheel', (e) => {
+      if (isOverAvatar(e.clientX, e.clientY)) {
+        e.preventDefault();
+        
+        let currentScale = parseFloat(inputs.scale.value) || 1.0;
+        const step = 0.05;
+        
+        if (e.deltaY < 0) {
+          currentScale += step;
+        } else {
+          currentScale -= step;
+        }
+
+        const minScale = parseFloat(inputs.scale.min) || 0.5;
+        const maxScale = parseFloat(inputs.scale.max) || 3.0;
+
+        currentScale = Math.max(minScale, Math.min(maxScale, currentScale));
+        inputs.scale.value = currentScale.toFixed(2);
+
+        updateSliderLabels();
+        updatePreview();
+      }
+    }, { passive: false });
+
+    // Touch event support for mobile
+    cardPreview.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      const touch = e.touches[0];
+      if (isOverAvatar(touch.clientX, touch.clientY)) {
+        isDragging = true;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        startPanX = parseFloat(inputs.panX.value) || 0;
+        startPanY = parseFloat(inputs.panY.value) || 0;
+        cardPreview.style.cursor = 'grabbing';
+        e.preventDefault();
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!isDragging || e.touches.length !== 1) return;
+      const touch = e.touches[0];
+
+      const rect = cardPreview.getBoundingClientRect();
+      if (rect.width === 0) return;
+
+      const isLandscape = inputs.landscape.checked;
+      const svgWidth = isLandscape ? 620 : 420;
+      const svgHeight = isLandscape ? 320 : 490;
+      const svgAspect = svgWidth / svgHeight;
+      const containerAspect = rect.width / rect.height;
+
+      let renderedWidth = rect.width;
+      let renderedHeight = rect.height;
+      if (containerAspect > svgAspect) {
+        renderedWidth = rect.height * svgAspect;
+      } else {
+        renderedHeight = rect.width / svgAspect;
+      }
+
+      const scaleX = svgWidth / renderedWidth;
+      const scaleY = svgHeight / renderedHeight;
+
+      const dx = (touch.clientX - startX) * scaleX;
+      const dy = (touch.clientY - startY) * scaleY;
+
+      let newPanX = Math.round(startPanX + dx);
+      let newPanY = Math.round(startPanY + dy);
+
+      const minX = parseInt(inputs.panX.min) || -150;
+      const maxX = parseInt(inputs.panX.max) || 150;
+      const minY = parseInt(inputs.panY.min) || -150;
+      const maxY = parseInt(inputs.panY.max) || 150;
+
+      newPanX = Math.max(minX, Math.min(maxX, newPanX));
+      newPanY = Math.max(minY, Math.min(maxY, newPanY));
+
+      inputs.panX.value = newPanX;
+      inputs.panY.value = newPanY;
+
+      updateSliderLabels();
+      updatePreview();
+    }, { passive: false });
+
+    window.addEventListener('touchend', () => {
+      if (isDragging) {
+        isDragging = false;
+      }
+    });
+
+    // Initial render setup
+    updateSliderLabels();
+    updatePreview();
+  </script>
+</body>
+</html>
