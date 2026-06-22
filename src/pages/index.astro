@@ -296,24 +296,6 @@
     let originalBase64 = ''; // Holds resized uploaded image
     let currentFile = null;
 
-    async function uploadImage(blobOrFile, isPng = false) {
-      const formData = new FormData();
-      const filename = isPng ? 'avatar.png' : 'avatar.jpg';
-      const type = isPng ? 'image/png' : 'image/jpeg';
-      const fileObj = new File([blobOrFile], filename, { type });
-      formData.append('file', fileObj);
-
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      if (!res.ok) {
-        throw new Error('Upload failed');
-      }
-      const data = await res.json();
-      return data.id;
-    }
-
     fileTriggerBtn.addEventListener('click', () => fileInput.click());
 
     fileInput.addEventListener('change', (e) => {
@@ -322,78 +304,72 @@
 
       currentFile = file;
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          // Resize cover fit to exactly 156x295 (max dimensions of portrait card container)
-          const canvas = document.createElement('canvas');
-          canvas.width = 156;
-          canvas.height = 295;
-          const ctx = canvas.getContext('2d');
-          
-          const imgAspect = img.width / img.height;
-          const canvasAspect = canvas.width / canvas.height;
-          let drawWidth = canvas.width;
-          let drawHeight = canvas.height;
-          let offsetX = 0;
-          let offsetY = 0;
-          
-          if (imgAspect > canvasAspect) {
-            drawWidth = canvas.height * imgAspect;
-            offsetX = -(drawWidth - canvas.width) / 2;
-          } else {
-            drawHeight = canvas.width / imgAspect;
-            offsetY = -(drawHeight - canvas.height) / 2;
-          }
-          
-          ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-          
-          const isPng = file.type === 'image/png';
-          const exportType = isPng ? 'image/png' : 'image/jpeg';
 
-          // Convert canvas to blob and upload to SQLite DB
-          canvas.toBlob(async (blob) => {
-            if (!blob) return;
-            try {
-              fileTriggerBtn.textContent = 'UPLOADING...';
-              fileTriggerBtn.disabled = true;
-              const id = await uploadImage(blob, isPng);
-              
-              // Store db:id instead of base64 to keep query parameters short!
-              uploadedBase64 = 'db:' + id;
-              originalBase64 = uploadedBase64;
+      if (file.type === 'image/gif') {
+        reader.onload = (event) => {
+          uploadedBase64 = event.target.result;
+          originalBase64 = uploadedBase64;
 
-              // Reset Zoom and Pan Sliders to default (1.0x, 0px, 0px) for custom upload
-              inputs.scale.value = "1.0";
-              inputs.panX.value = "0";
-              inputs.panY.value = "0";
-              updateSliderLabels();
-              
-              fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
-              fileTriggerBtn.disabled = false;
-              fileClearBtn.classList.remove('hidden');
-              updatePreview();
-            } catch (err) {
-              console.error('SQLite upload failed, falling back to base64:', err);
-              // Fallback to base64
-              originalBase64 = canvas.toDataURL(exportType, isPng ? undefined : 0.7);
-              uploadedBase64 = originalBase64;
-              
-              inputs.scale.value = "1.0";
-              inputs.panX.value = "0";
-              inputs.panY.value = "0";
-              updateSliderLabels();
-              
-              fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
-              fileTriggerBtn.disabled = false;
-              fileClearBtn.classList.remove('hidden');
-              updatePreview();
-            }
-          }, exportType, isPng ? undefined : 0.7);
+          // Reset Zoom and Pan Sliders to default center (1.0x, 0px, 0px) for custom upload
+          inputs.scale.value = "1.0";
+          inputs.panX.value = "0";
+          inputs.panY.value = "0";
+          updateSliderLabels();
+          updateAvatarTransformClient(0, 0, 1.0);
+
+          fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
+          fileClearBtn.classList.remove('hidden');
+          updatePreview();
         };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+      } else {
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            // Resize cover fit to exactly 156x295 (max dimensions of portrait card container)
+            const canvas = document.createElement('canvas');
+            canvas.width = 156;
+            canvas.height = 295;
+            const ctx = canvas.getContext('2d');
+            
+            const imgAspect = img.width / img.height;
+            const canvasAspect = canvas.width / canvas.height;
+            let drawWidth = canvas.width;
+            let drawHeight = canvas.height;
+            let offsetX = 0;
+            let offsetY = 0;
+            
+            if (imgAspect > canvasAspect) {
+              drawWidth = canvas.height * imgAspect;
+              offsetX = -(drawWidth - canvas.width) / 2;
+            } else {
+              drawHeight = canvas.width / imgAspect;
+              offsetY = -(drawHeight - canvas.height) / 2;
+            }
+            
+            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            
+            const isPng = file.type === 'image/png';
+            const exportType = isPng ? 'image/png' : 'image/jpeg';
+
+            originalBase64 = canvas.toDataURL(exportType, isPng ? undefined : 0.7);
+            uploadedBase64 = originalBase64;
+
+            // Reset Zoom and Pan Sliders to default center (1.0x, 0px, 0px) for custom upload
+            inputs.scale.value = "1.0";
+            inputs.panX.value = "0";
+            inputs.panY.value = "0";
+            updateSliderLabels();
+            updateAvatarTransformClient(0, 0, 1.0);
+
+            fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
+            fileClearBtn.classList.remove('hidden');
+            updatePreview();
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
     });
 
     fileClearBtn.addEventListener('click', () => {
