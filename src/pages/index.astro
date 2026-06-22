@@ -251,7 +251,7 @@
         
         <!-- Preview Box -->
         <div class="w-full flex justify-center p-6 bg-white rounded-2xl neo-border neo-shadow relative min-h-[480px] items-center">
-          <img id="card-preview" src="" alt="Live Card Preview" class="max-w-full h-auto object-contain select-none drop-shadow-md" />
+          <div id="card-preview" class="max-w-full h-auto select-none drop-shadow-md w-full flex items-center justify-center"></div>
         </div>
         
         <span class="text-xs text-gray-400 text-center">Images are fetched and base64-encoded on the server so they display correctly on GitHub.</span>
@@ -435,7 +435,9 @@
     ['scale', 'panX', 'panY'].forEach(key => {
       inputs[key].addEventListener('input', () => {
         updateSliderLabels();
-        updatePreview();
+        updateAvatarTransformClient(parseFloat(inputs.panX.value), parseFloat(inputs.panY.value), parseFloat(inputs.scale.value));
+        updatePreview(true);
+        syncServerPreviewDebounced();
       });
     });
 
@@ -446,7 +448,27 @@
       return 'https://card.synchronizeteams.com';
     }
 
-    function updatePreview() {
+    let syncTimeout = null;
+    function syncServerPreviewDebounced() {
+      if (syncTimeout) {
+        clearTimeout(syncTimeout);
+      }
+      syncTimeout = setTimeout(() => {
+        updatePreview(false);
+      }, 250);
+    }
+
+    function updateAvatarTransformClient(panX, panY, scale) {
+      const avatarImage = cardPreview.querySelector('#avatar-pattern image');
+      if (avatarImage) {
+        avatarImage.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+        const isLandscape = inputs.landscape.checked;
+        const origin = isLandscape ? "60 100" : "78 147.5";
+        avatarImage.setAttribute('transform-origin', origin);
+      }
+    }
+
+    async function updatePreview(skipServerFetch = false) {
       const params = new URLSearchParams();
       
       if (inputs.nama.value.trim()) params.append('nama', inputs.nama.value.trim());
@@ -479,12 +501,21 @@
       const previewUrl = `/api/card.svg?${queryStr}`;
       const fullUrl = `${getBaseUrl()}${previewUrl}`;
 
-      // Update image src
-      cardPreview.src = previewUrl;
-
       // Update markdown embed code
       const mdCode = `![My ID Card](${fullUrl})`;
       embedCode.textContent = mdCode;
+
+      if (skipServerFetch) return;
+
+      try {
+        const res = await fetch(previewUrl);
+        if (res.ok) {
+          const svgContent = await res.text();
+          cardPreview.innerHTML = svgContent;
+        }
+      } catch (err) {
+        console.error('Failed to load card SVG:', err);
+      }
     }
 
     // Bind event listeners to standard inputs & toggles
@@ -623,7 +654,9 @@
       inputs.panY.value = newPanY;
 
       updateSliderLabels();
-      updatePreview();
+      updateAvatarTransformClient(newPanX, newPanY, parseFloat(inputs.scale.value));
+      updatePreview(true);
+      syncServerPreviewDebounced();
     });
 
     // End dragging
@@ -655,7 +688,9 @@
         inputs.scale.value = currentScale.toFixed(2);
 
         updateSliderLabels();
-        updatePreview();
+        updateAvatarTransformClient(parseFloat(inputs.panX.value), parseFloat(inputs.panY.value), currentScale);
+        updatePreview(true);
+        syncServerPreviewDebounced();
       }
     }, { passive: false });
 
@@ -716,7 +751,9 @@
       inputs.panY.value = newPanY;
 
       updateSliderLabels();
-      updatePreview();
+      updateAvatarTransformClient(newPanX, newPanY, parseFloat(inputs.scale.value));
+      updatePreview(true);
+      syncServerPreviewDebounced();
     }, { passive: false });
 
     window.addEventListener('touchend', () => {
