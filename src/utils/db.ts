@@ -4,7 +4,7 @@ import os from 'os';
 import Database from 'better-sqlite3';
 
 export function getDataDir(): string {
-  const dir = process.env.DATA_DIR || path.join(os.homedir(), '.sync-card-data');
+  const dir = process.env.DATA_DIR || path.join(os.homedir(), '.paper-card-data');
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }

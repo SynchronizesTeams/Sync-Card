@@ -1,718 +1,499 @@
 ---
-// Astro preview and configuration landing page
+// paper-card — configuration dashboard. Same generator mechanism as Sync-Card,
+// restyled to the "clean light ops paper" design language.
+import Layout from '../layouts/Layout.astro';
 ---
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ID Card Generator / SynchronizeTeams</title>
-  <meta name="description" content="Configure and generate your custom neubrutalist ID Card SVG for GitHub README.">
-  
-  <!-- Modern Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  
-  <!-- Tailwind CSS v4 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
-  <style type="text/css">
-    :root {
-      --color-ink: #111111;
-      --color-canvas: #ffffff;
-      --font-poppins: 'Poppins', system-ui, -apple-system, sans-serif;
-      --font-mono: 'Space Mono', monospace;
-    }
+<Layout>
+  <header class="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur">
+    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-5 sm:px-8">
+      <a href="/" class="font-mono text-xs uppercase tracking-widest">SynchronizeTeams<span class="text-accent">:~$</span></a>
+      <a href="/api/card.svg" class="font-mono text-[11px] uppercase tracking-widest text-ink-2 transition-colors hover:text-accent">raw svg</a>
+    </div>
+  </header>
 
-    body {
-      font-family: var(--font-poppins);
-      background-color: #f3f4f6;
-      color: var(--color-ink);
-    }
+  <main class="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-16">
+    <div class="grid items-start gap-10 lg:grid-cols-12 lg:gap-14">
 
-    .neo-border {
-      border: 3px solid var(--color-ink);
-    }
+      <section class="lg:col-span-7">
+        <p class="font-mono text-[11px] uppercase tracking-widest text-ink-2">$ card --configure</p>
+        <h1 class="mt-3 font-display text-4xl leading-[1.05] font-semibold tracking-tight sm:text-5xl">
+          An ID card,<br />printed on paper.
+        </h1>
+        <p class="mt-4 max-w-prose text-sm leading-relaxed text-ink-2">
+          Fill the sheet, pan and zoom the portrait directly on the preview, then copy the
+          Markdown line. The server returns one self-contained SVG — images and QR embedded.
+        </p>
 
-    .neo-shadow {
-      box-shadow: 8px 8px 0px 0px var(--color-ink);
-    }
-    
-    .neo-shadow-sm {
-      box-shadow: 4px 4px 0px 0px var(--color-ink);
-    }
-
-    .neo-btn {
-      border: 3px solid var(--color-ink);
-      box-shadow: 4px 4px 0px 0px var(--color-ink);
-      transition: all 0.15s ease;
-    }
-    
-    .neo-btn:active {
-      transform: translate(2px, 2px);
-      box-shadow: 2px 2px 0px 0px var(--color-ink);
-    }
-
-    /* Custom Neubrutalist Toggle Checkboxes */
-    .neo-checkbox {
-      appearance: none;
-      width: 24px;
-      height: 24px;
-      border: 3px solid var(--color-ink);
-      border-radius: 6px;
-      outline: none;
-      cursor: pointer;
-      position: relative;
-      background-color: white;
-      box-shadow: 2px 2px 0px 0px var(--color-ink);
-      transition: all 0.1s ease;
-    }
-
-    .neo-checkbox:checked {
-      background-color: #22c55e; /* Green */
-    }
-
-    .neo-checkbox:checked::after {
-      content: '✓';
-      position: absolute;
-      top: -2px;
-      left: 3px;
-      color: white;
-      font-size: 16px;
-      font-weight: 900;
-    }
-
-    .neo-checkbox:disabled {
-      background-color: #e5e7eb;
-      cursor: not-allowed;
-      box-shadow: none;
-      border-color: #9ca3af;
-    }
-
-    .neo-checkbox:active:not(:disabled) {
-      transform: translate(1px, 1px);
-      box-shadow: 1px 1px 0px 0px var(--color-ink);
-    }
-  </style>
-</head>
-<body class="min-h-screen py-8 px-4 md:px-8 selection:bg-rose-500 selection:text-white">
-
-  <div class="max-w-6xl mx-auto flex flex-col gap-8">
-    
-
-
-    <!-- Main Content -->
-    <main class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      
-      <!-- Left: Configurations Form -->
-      <section class="lg:col-span-7 bg-white rounded-2xl neo-border neo-shadow p-6 md:p-8 flex flex-col gap-6">
-        <div>
-          <h2 class="font-black text-2xl uppercase">Configure Your Card</h2>
-          <p class="text-sm text-gray-500 mt-1">Customize details below to generate your custom SVG badge.</p>
-        </div>
-
-        <form id="config-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Nama -->
-          <div class="flex flex-col gap-1">
-            <label class="font-mono text-xs font-bold uppercase">Name</label>
-            <input type="text" id="input-nama" value="John Doe" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
+        <form id="config-form" class="mt-10 border-t border-line">
+          <div class="grid gap-5 border-b border-line py-6 sm:grid-cols-2">
+            <div class="flex flex-col gap-2">
+              <label class="label" for="input-nama">Name</label>
+              <input type="text" id="input-nama" value="John Doe" class="field" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="label" for="input-role">Role / subtitle</label>
+              <input type="text" id="input-role" value="Software Engineer" class="field" />
+            </div>
+            <div class="flex flex-col gap-2 sm:col-span-2">
+              <label class="label" for="input-qr">QR destination</label>
+              <input type="text" id="input-qr" value="https://github.com/johndoe" class="field" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="label" for="input-brand">Wordmark</label>
+              <input type="text" id="input-brand" value="SynchronizeTeams" class="field" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="label" for="input-meta">Corner label</label>
+              <input type="text" id="input-meta" value="ID / SVG" class="field" />
+            </div>
           </div>
 
-          <!-- Role -->
-          <div class="flex flex-col gap-1">
-            <label class="font-mono text-xs font-bold uppercase">Role / Subtitle</label>
-            <input type="text" id="input-role" value="Software Engineer" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
-          </div>
-
-          <!-- QR Value -->
-          <div class="flex flex-col gap-1 md:col-span-2">
-            <label class="font-mono text-xs font-bold uppercase">QR Code Destination</label>
-            <input type="text" id="input-qr" value="https://github.com/johndoe" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
-          </div>
-
-          <!-- Avatar Image Source -->
-          <div class="flex flex-col gap-1 md:col-span-2">
-            <label class="font-mono text-xs font-bold uppercase">Avatar Image Source</label>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="flex flex-col gap-1">
-                <span class="text-[10px] text-gray-400 font-bold uppercase">Option A: Image URL</span>
-                <input type="url" id="input-gambar" placeholder="https://github.com/username.png" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
-              </div>
-              <div class="flex flex-col gap-1">
-                <span class="text-[10px] text-gray-400 font-bold uppercase">Option B: Upload File</span>
-                <div class="flex items-center gap-2">
-                  <input type="file" id="input-file" accept="image/*" class="hidden" />
-                  <button type="button" id="file-trigger-btn" class="neo-btn bg-amber-200 hover:bg-amber-300 px-4 py-2.5 rounded-lg text-xs font-bold cursor-pointer w-full text-center">
-                    CHOOSE FILE...
-                  </button>
-                  <button type="button" id="file-clear-btn" class="neo-btn bg-rose-400 hover:bg-rose-500 px-3 py-2.5 rounded-lg text-xs font-bold cursor-pointer hidden">
-                    CLEAR
-                  </button>
-                </div>
+          <div class="grid gap-5 border-b border-line py-6 sm:grid-cols-2">
+            <div class="flex flex-col gap-2">
+              <label class="label" for="input-gambar">Avatar URL</label>
+              <input type="url" id="input-gambar" placeholder="https://github.com/username.png" class="field" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <span class="label">Or upload a file</span>
+              <div class="flex gap-2">
+                <input type="file" id="input-file" accept="image/*" class="hidden" />
+                <button type="button" id="file-trigger-btn" class="btn-ghost flex-1">choose file</button>
+                <button type="button" id="file-clear-btn" class="btn-ghost hidden">clear</button>
               </div>
             </div>
-            <span class="text-[10px] text-gray-400 mt-1">If both are provided, the uploaded file is preferred. Large images will be scaled down for optimized embedding.</span>
+            <p class="font-mono text-[10px] leading-relaxed text-ink-2 sm:col-span-2">
+              Upload wins over URL. Stored in SQLite, referenced as db:&lt;id&gt;.
+            </p>
           </div>
 
-          <!-- Image Zoom and Pan Sliders -->
-          <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-black border-dashed pt-4 mt-2">
-            <div class="flex flex-col gap-1">
-              <label class="font-mono text-xs font-bold uppercase flex justify-between">
-                <span>Zoom (Scale)</span>
-                <span id="label-scale" class="text-blue-600 font-black">1.33x</span>
+          <div class="grid gap-5 border-b border-line py-6 sm:grid-cols-3">
+            <div class="flex flex-col gap-2">
+              <label class="label flex justify-between" for="input-scale">
+                <span>Zoom</span><span id="label-scale" class="text-ink">1.33x</span>
               </label>
-              <input type="range" id="input-scale" min="0.5" max="3.0" step="0.05" value="1.33" class="w-full accent-black cursor-pointer" />
+              <input type="range" id="input-scale" min="0.5" max="3.0" step="0.05" value="1.33" />
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="font-mono text-xs font-bold uppercase flex justify-between">
-                <span>Pan X (Horizontal)</span>
-                <span id="label-pan-x" class="text-blue-600 font-black">-26px</span>
+            <div class="flex flex-col gap-2">
+              <label class="label flex justify-between" for="input-pan-x">
+                <span>Pan X</span><span id="label-pan-x" class="text-ink">-26px</span>
               </label>
-              <input type="range" id="input-pan-x" min="-150" max="150" step="1" value="-26" class="w-full accent-black cursor-pointer" />
+              <input type="range" id="input-pan-x" min="-150" max="150" step="1" value="-26" />
             </div>
-            <div class="flex flex-col gap-1">
-              <label class="font-mono text-xs font-bold uppercase flex justify-between">
-                <span>Pan Y (Vertical)</span>
-                <span id="label-pan-y" class="text-blue-600 font-black">0px</span>
+            <div class="flex flex-col gap-2">
+              <label class="label flex justify-between" for="input-pan-y">
+                <span>Pan Y</span><span id="label-pan-y" class="text-ink">0px</span>
               </label>
-              <input type="range" id="input-pan-y" min="-150" max="150" step="1" value="0" class="w-full accent-black cursor-pointer" />
+              <input type="range" id="input-pan-y" min="-150" max="150" step="1" value="0" />
             </div>
           </div>
 
-          <!-- Photo Background Color Picker -->
-          <div class="flex flex-col gap-1 md:col-span-2 border-t border-black border-dashed pt-4 mt-2">
-            <label class="font-mono text-xs font-bold uppercase">Photo Background Color</label>
-            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <input type="color" id="input-img-bg" value="#fca2a2" class="neo-border p-1 rounded-lg cursor-pointer h-11 w-20 bg-white" />
-              <div class="flex flex-wrap gap-2" id="preset-colors">
-                <button type="button" data-color="#a2c2fc" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#a2c2fc]" title="Blue"></button>
-                <button type="button" data-color="#fca2a2" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#fca2a2]" title="Rose"></button>
-                <button type="button" data-color="#a2fca2" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#a2fca2]" title="Green"></button>
-                <button type="button" data-color="#fca2fc" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#fca2fc]" title="Purple"></button>
-                <button type="button" data-color="#fef08a" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#fef08a]" title="Yellow"></button>
-                <button type="button" data-color="#3b82f6" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#3b82f6]" title="Dark Blue"></button>
-                <button type="button" data-color="#ffffff" class="w-8 h-8 rounded-full border-2 border-black cursor-pointer hover:scale-110 transition-transform bg-[#ffffff]" title="White"></button>
+          <div class="grid gap-4 border-b border-line py-6 sm:grid-cols-[auto_auto_1fr] sm:items-center">
+            <label class="label" for="input-img-bg">Photo backdrop</label>
+            <div class="flex items-center gap-2">
+              <input type="color" id="input-img-bg" value="#f1ede5" class="swatch" title="Custom colour" />
+              <span id="label-img-bg" class="font-mono text-[11px] text-ink-2">#f1ede5</span>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+                <button type="button" data-color="#f1ede5" class="swatch-btn bg-[#f1ede5]" title="Paper 2"></button>
+                <button type="button" data-color="#e2dcd0" class="swatch-btn bg-[#e2dcd0]" title="Line"></button>
+                <button type="button" data-color="#e4572e" class="swatch-btn bg-[#e4572e]" title="Vermilion"></button>
+                <button type="button" data-color="#c9c2b4" class="swatch-btn bg-[#c9c2b4]" title="Sand"></button>
+                <button type="button" data-color="#ffffff" class="swatch-btn bg-[#ffffff]" title="White"></button>
               </div>
+          </div>
+
+          <div class="grid gap-5 border-b border-line py-6 sm:grid-cols-2">
+            <div class="flex flex-col gap-2 sm:col-span-2">
+              <label class="label" for="input-tags">Tags (comma separated)</label>
+              <input type="text" id="input-tags" value="Linux, Networking, Automation" class="field" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="label" for="input-ig">Instagram</label>
+              <input type="text" id="input-ig" value="@johndoe" class="field" />
+            </div>
+            <div class="flex flex-col gap-2">
+              <label class="label" for="input-website">Website</label>
+              <input type="text" id="input-website" value="johndoe.com" class="field" />
             </div>
           </div>
 
-
-
-          <!-- Tags -->
-          <div class="flex flex-col gap-1 md:col-span-2 border-t border-black border-dashed pt-4 mt-2">
-            <label class="font-mono text-xs font-bold uppercase">Tags (comma separated)</label>
-            <input type="text" id="input-tags" value="HTML, CSS, JavaScript, React" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
-          </div>
-
-          <!-- Instagram -->
-          <div class="flex flex-col gap-1">
-            <label class="font-mono text-xs font-bold uppercase">Instagram</label>
-            <input type="text" id="input-ig" value="@johndoe" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
-          </div>
-
-          <!-- Website -->
-          <div class="flex flex-col gap-1">
-            <label class="font-mono text-xs font-bold uppercase">Website Domain</label>
-            <input type="text" id="input-website" value="johndoe.com" class="neo-border p-2.5 rounded-lg font-medium text-sm focus:outline-none focus:bg-amber-50" />
-          </div>
-
-          <!-- Toggle Options (Darkmode & Landscape) -->
-          <div class="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 border-t border-black border-dashed pt-4">
-            <!-- Dark Mode Toggle -->
-            <label class="flex items-center gap-3 cursor-pointer select-none">
-              <input type="checkbox" id="input-dark" class="neo-checkbox" />
-              <span class="font-mono text-sm font-bold uppercase">Enable Dark Mode</span>
+          <div class="flex flex-wrap gap-x-10 gap-y-4 border-b border-line py-6">
+            <label class="flex cursor-pointer items-center gap-3 select-none">
+              <input type="checkbox" id="input-dark" class="check" />
+              <span class="font-mono text-[11px] uppercase tracking-widest">Ink mode</span>
             </label>
-
-            <!-- Landscape Mode Toggle -->
-            <label class="flex items-center gap-3 cursor-pointer select-none">
-              <input type="checkbox" id="input-landscape" class="neo-checkbox" />
-              <span class="font-mono text-sm font-bold uppercase">Landscape Layout</span>
+            <label class="flex cursor-pointer items-center gap-3 select-none">
+              <input type="checkbox" id="input-landscape" class="check" />
+              <span class="font-mono text-[11px] uppercase tracking-widest">Landscape</span>
             </label>
           </div>
         </form>
-
-        <!-- Markdown Code block -->
-        <div class="flex flex-col gap-2 mt-4 pt-4 border-t-2 border-black border-dashed">
-          <div class="flex justify-between items-center">
-            <label class="font-mono text-xs font-bold uppercase">GitHub Markdown Embed</label>
-            <button id="copy-btn" class="neo-btn bg-emerald-400 text-black px-3 py-1 rounded-lg text-xs font-bold cursor-pointer">
-              COPY CODE
-            </button>
-          </div>
-          <div class="neo-border rounded-lg bg-gray-900 p-3 relative">
-            <code id="embed-code" class="font-mono text-xs text-gray-200 break-all select-all">Loading...</code>
-          </div>
-        </div>
       </section>
 
-      <!-- Right: Live Preview -->
-      <section class="lg:col-span-5 flex flex-col items-center gap-4 w-full">
-        <span class="font-mono text-xs font-bold uppercase text-gray-400">Live Preview</span>
-        
-        <!-- Preview Box -->
-        <div class="w-full flex justify-center p-6 bg-white rounded-2xl neo-border neo-shadow relative min-h-[480px] items-center">
-          <div id="card-preview" class="max-w-full h-auto select-none drop-shadow-md w-full flex items-center justify-center"></div>
+      <aside class="flex flex-col gap-6 lg:col-span-5 lg:sticky lg:top-20">
+        <div>
+          <div class="flex items-baseline justify-between">
+            <span class="label">live preview</span>
+            <span class="font-mono text-[10px] uppercase tracking-widest text-ink-2">drag / scroll to crop</span>
+          </div>
+          <div class="mt-3 flex min-h-[480px] items-center justify-center border border-line bg-paper-2 p-6">
+            <div id="card-preview" class="flex w-full items-center justify-center"></div>
+          </div>
         </div>
-        
-        <span class="text-xs text-gray-400 text-center">Images are fetched and base64-encoded on the server so they display correctly on GitHub.</span>
-      </section>
 
-    </main>
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="label">markdown embed</span>
+            <button id="copy-btn" class="btn-ghost">copy</button>
+          </div>
+          <div class="mt-3 border border-line bg-paper-2 p-3">
+            <code id="embed-code" class="block font-mono text-[11px] leading-relaxed break-all text-ink-2 select-all">Loading...</code>
+          </div>
+          <p class="mt-3 font-mono text-[10px] leading-relaxed text-ink-2">
+            Server fetches and base64-encodes the avatar, so the SVG renders inside GitHub.
+          </p>
+        </div>
+      </aside>
 
-  </div>
+    </div>
+  </main>
+</Layout>
 
-  <script type="text/javascript">
-    const form = document.getElementById('config-form');
-    const inputs = {
-      nama: document.getElementById('input-nama'),
-      role: document.getElementById('input-role'),
-      qr: document.getElementById('input-qr'),
-      gambar: document.getElementById('input-gambar'),
-      tags: document.getElementById('input-tags'),
-      ig: document.getElementById('input-ig'),
-      website: document.getElementById('input-website'),
-      dark: document.getElementById('input-dark'),
-      landscape: document.getElementById('input-landscape'),
-      scale: document.getElementById('input-scale'),
-      panX: document.getElementById('input-pan-x'),
-      panY: document.getElementById('input-pan-y'),
-      imgBg: document.getElementById('input-img-bg')
-    };
-    const cardPreview = document.getElementById('card-preview');
-    const embedCode = document.getElementById('embed-code');
-    const copyBtn = document.getElementById('copy-btn');
+<script type="text/javascript">
+  const form = document.getElementById('config-form');
+  const inputs = {
+    nama: document.getElementById('input-nama'),
+    role: document.getElementById('input-role'),
+    qr: document.getElementById('input-qr'),
+    brand: document.getElementById('input-brand'),
+    meta: document.getElementById('input-meta'),
+    gambar: document.getElementById('input-gambar'),
+    tags: document.getElementById('input-tags'),
+    ig: document.getElementById('input-ig'),
+    website: document.getElementById('input-website'),
+    dark: document.getElementById('input-dark'),
+    landscape: document.getElementById('input-landscape'),
+    scale: document.getElementById('input-scale'),
+    panX: document.getElementById('input-pan-x'),
+    panY: document.getElementById('input-pan-y'),
+    imgBg: document.getElementById('input-img-bg')
+  };
+  const cardPreview = document.getElementById('card-preview');
+  const embedCode = document.getElementById('embed-code');
+  const copyBtn = document.getElementById('copy-btn');
 
-    // Local file upload elements
-    const fileInput = document.getElementById('input-file');
-    const fileTriggerBtn = document.getElementById('file-trigger-btn');
-    const fileClearBtn = document.getElementById('file-clear-btn');
-    
-    // Sliders Labels
-    const labelScale = document.getElementById('label-scale');
-    const labelPanX = document.getElementById('label-pan-x');
-    const labelPanY = document.getElementById('label-pan-y');
+  const fileInput = document.getElementById('input-file');
+  const fileTriggerBtn = document.getElementById('file-trigger-btn');
+  const fileClearBtn = document.getElementById('file-clear-btn');
 
-    let uploadedBase64 = '';
-    let originalBase64 = ''; // Holds resized uploaded image
-    let currentFile = null;
+  const labelScale = document.getElementById('label-scale');
+  const labelPanX = document.getElementById('label-pan-x');
+  const labelPanY = document.getElementById('label-pan-y');
 
-    async function uploadImage(file) {
-      const formData = new FormData();
-      formData.append('file', file);
+  let uploadedBase64 = '';
+  let currentFile = null;
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-      });
-      if (!res.ok) {
-        throw new Error('Upload failed');
-      }
-      const data = await res.json();
-      return data.id;
-    }
+  // default crops: the shared face.png is framed differently per layout
+  const CROP_PRESETS = {
+    portrait: { scale: 1.33, x: -26, y: 0 },
+    landscape: { scale: 1.0, x: 0, y: 30 }
+  };
+  function applyCropPreset() {
+    if (uploadedBase64) return;
+    const p = inputs.landscape.checked ? CROP_PRESETS.landscape : CROP_PRESETS.portrait;
+    inputs.scale.value = p.scale;
+    inputs.panX.value = p.x;
+    inputs.panY.value = p.y;
+    updateSliderLabels();
+  }
 
-    fileTriggerBtn.addEventListener('click', () => fileInput.click());
+  async function uploadImage(file) {
+    const formData = new FormData();
+    formData.append('file', file);
 
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error('Upload failed');
+    const data = await res.json();
+    return data.id;
+  }
 
-      currentFile = file;
-      try {
-        fileTriggerBtn.textContent = 'UPLOADING...';
-        fileTriggerBtn.disabled = true;
+  fileTriggerBtn.addEventListener('click', () => fileInput.click());
 
-        const id = await uploadImage(file);
-        uploadedBase64 = 'db:' + id;
-        originalBase64 = uploadedBase64;
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
 
-        // Reset Zoom and Pan Sliders to default center (1.0x, 0px, 0px) for custom upload
-        inputs.scale.value = "1.0";
-        inputs.panX.value = "0";
-        inputs.panY.value = "0";
-        updateSliderLabels();
-        updateAvatarTransformClient(0, 0, 1.0);
+    currentFile = file;
+    try {
+      fileTriggerBtn.textContent = 'uploading...';
+      fileTriggerBtn.disabled = true;
 
-        fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
-        fileTriggerBtn.disabled = false;
-        fileClearBtn.classList.remove('hidden');
-        updatePreview();
-      } catch (err) {
-        console.error('File upload failed:', err);
-        fileTriggerBtn.textContent = 'ERROR!';
-        fileTriggerBtn.disabled = false;
-      }
-    });
+      const id = await uploadImage(file);
+      uploadedBase64 = 'db:' + id;
 
-    fileClearBtn.addEventListener('click', () => {
-      fileInput.value = '';
-      currentFile = null;
-      uploadedBase64 = '';
-      originalBase64 = '';
-      
-      fileTriggerBtn.textContent = 'CHOOSE FILE...';
-      fileClearBtn.classList.add('hidden');
-
-      // Reset Zoom and Pan Sliders to presets for default avatar
-      inputs.scale.value = "1.33";
-      inputs.panX.value = "-26";
-      inputs.panY.value = "0";
+      // A fresh upload is uncropped: reset to identity transform.
+      inputs.scale.value = '1.0';
+      inputs.panX.value = '0';
+      inputs.panY.value = '0';
       updateSliderLabels();
+      updateAvatarTransformClient(0, 0, 1.0);
 
+      fileTriggerBtn.textContent = file.name.substring(0, 12) + (file.name.length > 12 ? '...' : '');
+      fileTriggerBtn.disabled = false;
+      fileClearBtn.classList.remove('hidden');
+      updatePreview();
+    } catch (err) {
+      console.error('File upload failed:', err);
+      fileTriggerBtn.textContent = 'error';
+      fileTriggerBtn.disabled = false;
+    }
+  });
+
+  fileClearBtn.addEventListener('click', () => {
+    fileInput.value = '';
+    currentFile = null;
+    uploadedBase64 = '';
+
+    fileTriggerBtn.textContent = 'choose file';
+    fileClearBtn.classList.add('hidden');
+
+    applyCropPreset();
+    updatePreview();
+  });
+
+  const presetColors = document.querySelectorAll('[data-color]');
+  function syncSwatches() {
+    const current = inputs.imgBg.value.toLowerCase();
+    document.getElementById('label-img-bg').textContent = current;
+    presetColors.forEach(btn => {
+      btn.classList.toggle('is-active', btn.getAttribute('data-color').toLowerCase() === current);
+    });
+  }
+  presetColors.forEach(btn => {
+    btn.addEventListener('click', () => {
+      inputs.imgBg.value = btn.getAttribute('data-color');
+      syncSwatches();
       updatePreview();
     });
+  });
+  inputs.imgBg.addEventListener('input', syncSwatches);
 
-    // Preset color buttons handler
-    const presetColors = document.querySelectorAll('#preset-colors button');
-    presetColors.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const color = btn.getAttribute('data-color');
-        inputs.imgBg.value = color;
-        updatePreview();
-      });
+  function updateSliderLabels() {
+    labelScale.textContent = `${parseFloat(inputs.scale.value).toFixed(2)}x`;
+    labelPanX.textContent = `${inputs.panX.value}px`;
+    labelPanY.textContent = `${inputs.panY.value}px`;
+  }
+
+  ['scale', 'panX', 'panY'].forEach(key => {
+    inputs[key].addEventListener('input', () => {
+      updateSliderLabels();
+      updateAvatarTransformClient(parseFloat(inputs.panX.value), parseFloat(inputs.panY.value), parseFloat(inputs.scale.value));
+      updatePreview(true);
+      syncServerPreviewDebounced();
     });
+  });
 
-    // Slider text labels updates
-    function updateSliderLabels() {
-      labelScale.textContent = `${parseFloat(inputs.scale.value).toFixed(2)}x`;
-      labelPanX.textContent = `${inputs.panX.value}px`;
-      labelPanY.textContent = `${inputs.panY.value}px`;
+  let syncTimeout = null;
+  function syncServerPreviewDebounced() {
+    if (syncTimeout) clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(() => updatePreview(false), 250);
+  }
+
+  function updateAvatarTransformClient(panX, panY, scale) {
+    const avatarImage = cardPreview.querySelector('#avatar-pattern image');
+    if (avatarImage) {
+      avatarImage.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
+      const origin = inputs.landscape.checked ? '58 77.5' : '78 147.5';
+      avatarImage.setAttribute('transform-origin', origin);
+    }
+  }
+
+  async function updatePreview(skipServerFetch = false) {
+    const params = new URLSearchParams();
+
+    if (inputs.nama.value.trim()) params.append('nama', inputs.nama.value.trim());
+    if (inputs.role.value.trim()) params.append('role', inputs.role.value.trim());
+    if (inputs.qr.value.trim()) params.append('qr', inputs.qr.value.trim());
+    params.append('brand', inputs.brand.value);
+    params.append('meta', inputs.meta.value);
+
+    if (uploadedBase64) {
+      params.append('gambar', uploadedBase64);
+    } else if (inputs.gambar.value.trim()) {
+      params.append('gambar', inputs.gambar.value.trim());
     }
 
-    // Bind event listeners to sliders
-    ['scale', 'panX', 'panY'].forEach(key => {
-      inputs[key].addEventListener('input', () => {
-        updateSliderLabels();
+    params.append('img_scale', inputs.scale.value);
+    params.append('img_x', inputs.panX.value);
+    params.append('img_y', inputs.panY.value);
+    params.append('img_bg', inputs.imgBg.value.replace('#', ''));
+
+    if (inputs.tags.value.trim()) params.append('tags', inputs.tags.value.trim());
+    if (inputs.ig.value.trim()) params.append('ig', inputs.ig.value.trim());
+    if (inputs.website.value.trim()) params.append('website', inputs.website.value.trim());
+    if (inputs.dark.checked) params.append('dark', 'true');
+    if (inputs.landscape.checked) params.append('landscape', 'true');
+
+    const previewUrl = `/api/card.svg?${params.toString()}`;
+    embedCode.textContent = `![My ID Card](${window.location.origin}${previewUrl})`;
+
+    if (skipServerFetch) return;
+
+    try {
+      const res = await fetch(previewUrl);
+      if (res.ok) cardPreview.innerHTML = await res.text();
+    } catch (err) {
+      console.error('Failed to load card SVG:', err);
+    }
+  }
+
+  ['nama', 'role', 'qr', 'brand', 'meta', 'gambar', 'tags', 'ig', 'website', 'imgBg'].forEach(key => {
+    inputs[key].addEventListener('input', () => updatePreview());
+  });
+
+  ['dark', 'landscape'].forEach(key => {
+    inputs[key].addEventListener('change', () => {
+      if (key === 'landscape') {
+        applyCropPreset();
         updateAvatarTransformClient(parseFloat(inputs.panX.value), parseFloat(inputs.panY.value), parseFloat(inputs.scale.value));
-        updatePreview(true);
-        syncServerPreviewDebounced();
-      });
-    });
-
-    function getBaseUrl() {
-      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        return window.location.origin;
       }
-      return 'https://card.synchronizeteams.com';
+      updatePreview();
+    });
+  });
+
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(embedCode.textContent).then(() => {
+      copyBtn.textContent = 'copied';
+      setTimeout(() => { copyBtn.textContent = 'copy'; }, 1500);
+    });
+  });
+
+  // --- drag & zoom straight on the card ---
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startPanX = 0;
+  let startPanY = 0;
+
+  const SVG_SIZE = () => ({
+    w: inputs.landscape.checked ? 620 : 420,
+    h: inputs.landscape.checked ? 320 : 490
+  });
+
+  // rendered SVG box inside its container (object-fit: contain maths)
+  function renderedBox() {
+    const rect = cardPreview.getBoundingClientRect();
+    const { w: svgW, h: svgH } = SVG_SIZE();
+    const svgAspect = svgW / svgH;
+    const containerAspect = rect.width / rect.height;
+    let width = rect.width;
+    let height = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+    if (containerAspect > svgAspect) {
+      width = rect.height * svgAspect;
+      offsetX = (rect.width - width) / 2;
+    } else {
+      height = rect.width / svgAspect;
+      offsetY = (rect.height - height) / 2;
     }
+    return { rect, svgW, svgH, width, height, offsetX, offsetY };
+  }
 
-    let syncTimeout = null;
-    function syncServerPreviewDebounced() {
-      if (syncTimeout) {
-        clearTimeout(syncTimeout);
-      }
-      syncTimeout = setTimeout(() => {
-        updatePreview(false);
-      }, 250);
-    }
+  function isOverAvatar(clientX, clientY) {
+    const { rect, svgW, svgH, width, height, offsetX, offsetY } = renderedBox();
+    if (rect.width === 0 || rect.height === 0) return false;
 
-    function updateAvatarTransformClient(panX, panY, scale) {
-      const avatarImage = cardPreview.querySelector('#avatar-pattern image');
-      if (avatarImage) {
-        avatarImage.setAttribute('transform', `translate(${panX}, ${panY}) scale(${scale})`);
-        const isLandscape = inputs.landscape.checked;
-        const origin = isLandscape ? "60 100" : "78 147.5";
-        avatarImage.setAttribute('transform-origin', origin);
-      }
-    }
+    const localX = (clientX - (rect.left + offsetX)) * (svgW / width);
+    const localY = (clientY - (rect.top + offsetY)) * (svgH / height);
 
-    async function updatePreview(skipServerFetch = false) {
-      const params = new URLSearchParams();
-      
-      if (inputs.nama.value.trim()) params.append('nama', inputs.nama.value.trim());
-      if (inputs.role.value.trim()) params.append('role', inputs.role.value.trim());
-      if (inputs.qr.value.trim()) params.append('qr', inputs.qr.value.trim());
-      
-      // Use uploaded base64 if present, otherwise use URL
-      if (uploadedBase64) {
-        params.append('gambar', uploadedBase64);
-      } else if (inputs.gambar.value.trim()) {
-        params.append('gambar', inputs.gambar.value.trim());
-      }
-      
-      // Sliders & Custom Colors parameters
-      params.append('img_scale', inputs.scale.value);
-      params.append('img_x', inputs.panX.value);
-      params.append('img_y', inputs.panY.value);
-      
-      // Pass img_bg without the # character to keep URL clean and prevent parsing issues
-      const cleanColor = inputs.imgBg.value.replace('#', '');
-      params.append('img_bg', cleanColor);
+    return inputs.landscape.checked
+      ? localX >= 32 && localX <= 148 && localY >= 68 && localY <= 223
+      : localX >= 226 && localX <= 382 && localY >= 85 && localY <= 380;
+  }
 
-      if (inputs.tags.value.trim()) params.append('tags', inputs.tags.value.trim());
-      if (inputs.ig.value.trim()) params.append('ig', inputs.ig.value.trim());
-      if (inputs.website.value.trim()) params.append('website', inputs.website.value.trim());
-      if (inputs.dark.checked) params.append('dark', 'true');
-      if (inputs.landscape.checked) params.append('landscape', 'true');
+  cardPreview.addEventListener('mousemove', (e) => {
+    if (isDragging) return;
+    cardPreview.style.cursor = isOverAvatar(e.clientX, e.clientY) ? 'grab' : 'default';
+  });
 
-      const queryStr = params.toString();
-      const previewUrl = `/api/card.svg?${queryStr}`;
-      const fullUrl = `${getBaseUrl()}${previewUrl}`;
+  cardPreview.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    if (!isOverAvatar(e.clientX, e.clientY)) return;
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    startPanX = parseFloat(inputs.panX.value) || 0;
+    startPanY = parseFloat(inputs.panY.value) || 0;
+    cardPreview.style.cursor = 'grabbing';
+    e.preventDefault();
+  });
 
-      // Update markdown embed code
-      const mdCode = `![My ID Card](${fullUrl})`;
-      embedCode.textContent = mdCode;
+  function dragTo(clientX, clientY) {
+    const { svgW, svgH, width, height } = renderedBox();
+    if (width === 0) return;
 
-      if (skipServerFetch) return;
+    const dx = (clientX - startX) * (svgW / width);
+    const dy = (clientY - startY) * (svgH / height);
 
-      try {
-        const res = await fetch(previewUrl);
-        if (res.ok) {
-          const svgContent = await res.text();
-          cardPreview.innerHTML = svgContent;
-        }
-      } catch (err) {
-        console.error('Failed to load card SVG:', err);
-      }
-    }
+    const clamp = (v, el) => Math.max(parseFloat(el.min), Math.min(parseFloat(el.max), v));
 
-    // Bind event listeners to standard inputs & toggles
-    ['nama', 'role', 'qr', 'gambar', 'tags', 'ig', 'website', 'imgBg'].forEach(key => {
-      inputs[key].addEventListener('input', updatePreview);
-    });
-    
-    ['dark', 'landscape'].forEach(key => {
-      inputs[key].addEventListener('change', updatePreview);
-    });
+    inputs.panX.value = Math.round(clamp(startPanX + dx, inputs.panX));
+    inputs.panY.value = Math.round(clamp(startPanY + dy, inputs.panY));
 
-    // Copy to clipboard logic
-    copyBtn.addEventListener('click', () => {
-      navigator.clipboard.writeText(embedCode.textContent).then(() => {
-        copyBtn.textContent = 'COPIED!';
-        copyBtn.classList.remove('bg-emerald-400');
-        copyBtn.classList.add('bg-white');
-        setTimeout(() => {
-          copyBtn.textContent = 'COPY CODE';
-          copyBtn.classList.remove('bg-white');
-          copyBtn.classList.add('bg-emerald-400');
-        }, 1500);
-      });
-    });
-
-    // --- Interactive Drag & Zoom directly on Card Preview ---
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let startPanX = 0;
-    let startPanY = 0;
-
-    // Helper to determine if cursor is over the avatar container in SVG coordinates
-    function isOverAvatar(clientX, clientY) {
-      const rect = cardPreview.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return false;
-
-      const isLandscape = inputs.landscape.checked;
-      const svgWidth = isLandscape ? 620 : 420;
-      const svgHeight = isLandscape ? 320 : 490;
-      const svgAspect = svgWidth / svgHeight;
-      const containerAspect = rect.width / rect.height;
-
-      let renderedWidth = rect.width;
-      let renderedHeight = rect.height;
-      let offsetX = 0;
-      let offsetY = 0;
-
-      if (containerAspect > svgAspect) {
-        // Pillarboxed
-        renderedWidth = rect.height * svgAspect;
-        offsetX = (rect.width - renderedWidth) / 2;
-      } else {
-        // Letterboxed
-        renderedHeight = rect.width / svgAspect;
-        offsetY = (rect.height - renderedHeight) / 2;
-      }
-
-      // Mouse coordinates relative to actual rendered SVG bounds
-      const localX = (clientX - (rect.left + offsetX)) * (svgWidth / renderedWidth);
-      const localY = (clientY - (rect.top + offsetY)) * (svgHeight / renderedHeight);
-
-      if (isLandscape) {
-        // Landscape avatar box: X: 21 to 141, Y: 57 to 257
-        return localX >= 21 && localX <= 141 && localY >= 57 && localY <= 257;
-      } else {
-        // Portrait avatar box: X: 221 to 377, Y: 80 to 375
-        return localX >= 221 && localX <= 377 && localY >= 80 && localY <= 375;
-      }
-    }
-
-    // Change cursor to 'grab' when hovering over the avatar container
-    cardPreview.addEventListener('mousemove', (e) => {
-      if (isDragging) return;
-      if (isOverAvatar(e.clientX, e.clientY)) {
-        cardPreview.style.cursor = 'grab';
-      } else {
-        cardPreview.style.cursor = 'default';
-      }
-    });
-
-    // Start dragging
-    cardPreview.addEventListener('mousedown', (e) => {
-      if (e.button !== 0) return; // only left click
-      if (isOverAvatar(e.clientX, e.clientY)) {
-        isDragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        startPanX = parseFloat(inputs.panX.value) || 0;
-        startPanY = parseFloat(inputs.panY.value) || 0;
-        cardPreview.style.cursor = 'grabbing';
-        e.preventDefault();
-      }
-    });
-
-    // Handle drag movement
-    window.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-
-      const rect = cardPreview.getBoundingClientRect();
-      if (rect.width === 0) return;
-
-      const isLandscape = inputs.landscape.checked;
-      const svgWidth = isLandscape ? 620 : 420;
-      const svgHeight = isLandscape ? 320 : 490;
-      const svgAspect = svgWidth / svgHeight;
-      const containerAspect = rect.width / rect.height;
-
-      let renderedWidth = rect.width;
-      let renderedHeight = rect.height;
-      if (containerAspect > svgAspect) {
-        renderedWidth = rect.height * svgAspect;
-      } else {
-        renderedHeight = rect.width / svgAspect;
-      }
-
-      const scaleX = svgWidth / renderedWidth;
-      const scaleY = svgHeight / renderedHeight;
-
-      const dx = (e.clientX - startX) * scaleX;
-      const dy = (e.clientY - startY) * scaleY;
-
-      let newPanX = Math.round(startPanX + dx);
-      let newPanY = Math.round(startPanY + dy);
-
-      // Clamp within input slider min/max
-      const minX = parseInt(inputs.panX.min) || -150;
-      const maxX = parseInt(inputs.panX.max) || 150;
-      const minY = parseInt(inputs.panY.min) || -150;
-      const maxY = parseInt(inputs.panY.max) || 150;
-
-      newPanX = Math.max(minX, Math.min(maxX, newPanX));
-      newPanY = Math.max(minY, Math.min(maxY, newPanY));
-
-      inputs.panX.value = newPanX;
-      inputs.panY.value = newPanY;
-
-      updateSliderLabels();
-      updateAvatarTransformClient(newPanX, newPanY, parseFloat(inputs.scale.value));
-      updatePreview(true);
-      syncServerPreviewDebounced();
-    });
-
-    // End dragging
-    window.addEventListener('mouseup', () => {
-      if (isDragging) {
-        isDragging = false;
-        cardPreview.style.cursor = 'grab';
-      }
-    });
-
-    // Mouse wheel zoom
-    cardPreview.addEventListener('wheel', (e) => {
-      if (isOverAvatar(e.clientX, e.clientY)) {
-        e.preventDefault();
-        
-        let currentScale = parseFloat(inputs.scale.value) || 1.0;
-        const step = 0.05;
-        
-        if (e.deltaY < 0) {
-          currentScale += step;
-        } else {
-          currentScale -= step;
-        }
-
-        const minScale = parseFloat(inputs.scale.min) || 0.5;
-        const maxScale = parseFloat(inputs.scale.max) || 3.0;
-
-        currentScale = Math.max(minScale, Math.min(maxScale, currentScale));
-        inputs.scale.value = currentScale.toFixed(2);
-
-        updateSliderLabels();
-        updateAvatarTransformClient(parseFloat(inputs.panX.value), parseFloat(inputs.panY.value), currentScale);
-        updatePreview(true);
-        syncServerPreviewDebounced();
-      }
-    }, { passive: false });
-
-    // Touch event support for mobile
-    cardPreview.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) return;
-      const touch = e.touches[0];
-      if (isOverAvatar(touch.clientX, touch.clientY)) {
-        isDragging = true;
-        startX = touch.clientX;
-        startY = touch.clientY;
-        startPanX = parseFloat(inputs.panX.value) || 0;
-        startPanY = parseFloat(inputs.panY.value) || 0;
-        cardPreview.style.cursor = 'grabbing';
-        e.preventDefault();
-      }
-    }, { passive: false });
-
-    window.addEventListener('touchmove', (e) => {
-      if (!isDragging || e.touches.length !== 1) return;
-      const touch = e.touches[0];
-
-      const rect = cardPreview.getBoundingClientRect();
-      if (rect.width === 0) return;
-
-      const isLandscape = inputs.landscape.checked;
-      const svgWidth = isLandscape ? 620 : 420;
-      const svgHeight = isLandscape ? 320 : 490;
-      const svgAspect = svgWidth / svgHeight;
-      const containerAspect = rect.width / rect.height;
-
-      let renderedWidth = rect.width;
-      let renderedHeight = rect.height;
-      if (containerAspect > svgAspect) {
-        renderedWidth = rect.height * svgAspect;
-      } else {
-        renderedHeight = rect.width / svgAspect;
-      }
-
-      const scaleX = svgWidth / renderedWidth;
-      const scaleY = svgHeight / renderedHeight;
-
-      const dx = (touch.clientX - startX) * scaleX;
-      const dy = (touch.clientY - startY) * scaleY;
-
-      let newPanX = Math.round(startPanX + dx);
-      let newPanY = Math.round(startPanY + dy);
-
-      const minX = parseInt(inputs.panX.min) || -150;
-      const maxX = parseInt(inputs.panX.max) || 150;
-      const minY = parseInt(inputs.panY.min) || -150;
-      const maxY = parseInt(inputs.panY.max) || 150;
-
-      newPanX = Math.max(minX, Math.min(maxX, newPanX));
-      newPanY = Math.max(minY, Math.min(maxY, newPanY));
-
-      inputs.panX.value = newPanX;
-      inputs.panY.value = newPanY;
-
-      updateSliderLabels();
-      updateAvatarTransformClient(newPanX, newPanY, parseFloat(inputs.scale.value));
-      updatePreview(true);
-      syncServerPreviewDebounced();
-    }, { passive: false });
-
-    window.addEventListener('touchend', () => {
-      if (isDragging) {
-        isDragging = false;
-      }
-    });
-
-    // Initial render setup
     updateSliderLabels();
-    updatePreview();
-  </script>
-</body>
-</html>
+    updateAvatarTransformClient(parseFloat(inputs.panX.value), parseFloat(inputs.panY.value), parseFloat(inputs.scale.value));
+    updatePreview(true);
+    syncServerPreviewDebounced();
+  }
+
+  window.addEventListener('mousemove', (e) => {
+    if (isDragging) dragTo(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    cardPreview.style.cursor = 'grab';
+  });
+
+  cardPreview.addEventListener('wheel', (e) => {
+    if (!isOverAvatar(e.clientX, e.clientY)) return;
+    e.preventDefault();
+
+    const step = 0.05;
+    let next = (parseFloat(inputs.scale.value) || 1.0) + (e.deltaY < 0 ? step : -step);
+    next = Math.max(parseFloat(inputs.scale.min), Math.min(parseFloat(inputs.scale.max), next));
+    inputs.scale.value = next.toFixed(2);
+
+    updateSliderLabels();
+    updateAvatarTransformClient(parseFloat(inputs.panX.value), parseFloat(inputs.panY.value), next);
+    updatePreview(true);
+    syncServerPreviewDebounced();
+  }, { passive: false });
+
+  // touch
+  cardPreview.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    const touch = e.touches[0];
+    if (!isOverAvatar(touch.clientX, touch.clientY)) return;
+    isDragging = true;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    startPanX = parseFloat(inputs.panX.value) || 0;
+    startPanY = parseFloat(inputs.panY.value) || 0;
+    e.preventDefault();
+  }, { passive: false });
+
+  window.addEventListener('touchmove', (e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    dragTo(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+
+  window.addEventListener('touchend', () => { isDragging = false; });
+
+  updateSliderLabels();
+  syncSwatches();
+  updatePreview();
+</script>

@@ -40,19 +40,45 @@ function wrapText(text: string, maxCharsPerLine: number): string[] {
   return lines;
 }
 
+// paper-card palette — mirrors DESIGN.md tokens (no raw hex outside these objects)
+const light = {
+  card: '#FAF7F2',
+  text: '#1C1917',
+  muted: '#57534E',
+  line: '#E2DCD0',
+  chip: '#E2DCD0',
+  qrBox: '#FFFFFF',
+};
+const dark = {
+  card: '#1C1917',
+  text: '#FAF7F2',
+  muted: '#B8B2AA',
+  line: '#4A443C',
+  chip: '#4A443C',
+  qrBox: '#FFFFFF',
+};
+const accent = '#E4572E';
+const qrInk = '#1C1917';
+
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
   const nama = url.searchParams.get('nama') || 'John Doe';
   const role = url.searchParams.get('role') || 'Software Engineer';
   const qrText = url.searchParams.get('qr') || 'https://github.com/johndoe';
   const gambarUrl = url.searchParams.get('gambar');
-  const tagsParam = url.searchParams.get('tags') || 'HTML,CSS,JavaScript,React';
+  const tagsParam = url.searchParams.get('tags') || 'Linux,Networking,Automation';
   const ig = url.searchParams.get('ig') || '@johndoe';
+  const brandParam = url.searchParams.get('brand');
+  const metaParam = url.searchParams.get('meta');
+  const brand = brandParam === null ? 'SynchronizeTeams' : brandParam;
+  const meta = metaParam === null ? 'ID / SVG' : metaParam;
   const website = url.searchParams.get('website') || 'johndoe.com';
 
-  // Check config flags (supports ?dark, ?dark=true, ?landscape, ?landscape=true)
-  const isDark = url.searchParams.has('dark') || url.searchParams.get('dark') === 'true' || url.searchParams.get('theme') === 'dark';
-  const isLandscape = url.searchParams.has('landscape') || url.searchParams.get('landscape') === 'true' || url.searchParams.get('pos') === 'landscape';
+  // (?dark, ?landscape also accept =true / theme=dark / pos=landscape)
+  const isDark = url.searchParams.has('dark') || url.searchParams.get('theme') === 'dark';
+  const isLandscape = url.searchParams.has('landscape') || url.searchParams.get('pos') === 'landscape';
+
+  const c = isDark ? dark : light;
 
   // Parse image positioning & background custom settings
   const hasImgScale = url.searchParams.has('img_scale');
@@ -66,8 +92,9 @@ export const GET: APIRoute = async ({ request }) => {
   // Presets to perfectly center and crop the default face avatar
   if (!gambarUrl) {
     if (isLandscape) {
-      defaultScale = 1.5;
-      defaultX = -34;
+      defaultScale = 1.0;
+      defaultX = 0;
+      defaultY = 30;
     } else {
       defaultScale = 1.33;
       defaultX = -26;
@@ -78,31 +105,28 @@ export const GET: APIRoute = async ({ request }) => {
   const imgX = hasImgX ? parseFloat(url.searchParams.get('img_x')!) : defaultX;
   const imgY = hasImgY ? parseFloat(url.searchParams.get('img_y')!) : defaultY;
 
-  // Custom photo background color parameter
+  // Photo backdrop (paper stock by default, not a highlight colour)
   let imgBg = url.searchParams.get('img_bg') || '';
   if (!imgBg) {
-    imgBg = isDark ? '#3b82f6' : '#fca2a2';
+    imgBg = isDark ? '#262220' : '#F1EDE5';
   } else if (/^[0-9a-fA-F]{3,8}$/.test(imgBg)) {
     imgBg = '#' + imgBg;
   }
 
   const tags = tagsParam.split(',').map(t => t.trim()).filter(Boolean);
 
-  // Transform and escape text inputs
-  const uppercasedNama = nama.toUpperCase();
-  const escapedNama = escapeXml(uppercasedNama);
-
-  const uppercasedRole = role.toUpperCase();
-  const escapedRole = escapeXml(uppercasedRole);
-
+  const escapedNama = escapeXml(nama);
   const escapedIg = escapeXml(ig);
   const escapedWebsite = escapeXml(website);
+  const escapedBrand = escapeXml(brand);
+  const escapedMeta = escapeXml(meta);
 
-  // Setup paths for default images
+  // long wordmarks step down instead of running into the corner label
+  const brandFontSize = brand.length > 18 ? Math.max(7.5, 10.5 - (brand.length - 18) * 0.28) : 10.5;
+
+  // Default avatar
   const assetsDir = path.join(process.cwd(), 'public', 'assets');
   let defaultFaceBase64 = '';
-  let logoBase64 = '';
-
   try {
     const defaultFaceBuffer = fs.readFileSync(path.join(assetsDir, 'face.png'));
     defaultFaceBase64 = `data:image/png;base64,${defaultFaceBuffer.toString('base64')}`;
@@ -110,14 +134,7 @@ export const GET: APIRoute = async ({ request }) => {
     console.error('Error reading default face image:', err);
   }
 
-  try {
-    const logoBuffer = fs.readFileSync(path.join(assetsDir, 'SynchronizeTeams Logo Dark(1)(1).png'));
-    logoBase64 = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-  } catch (err) {
-    console.error('Error reading logo image:', err);
-  }
-
-  // Handle avatar image embedding (fetch from web, read base64 raw, or load path from SQLite images.db)
+  // Avatar embedding: db:<id> | data: | remote URL
   let avatarBase64 = defaultFaceBase64;
   if (gambarUrl) {
     if (gambarUrl.startsWith('db:')) {
@@ -127,7 +144,7 @@ export const GET: APIRoute = async ({ request }) => {
         const db = getDb();
         const stmt = db.prepare('SELECT file_path, mime_type FROM images WHERE id = ?');
         const row = stmt.get(id) as { file_path: string, mime_type: string } | undefined;
-        
+
         if (row && fs.existsSync(row.file_path)) {
           const buffer = fs.readFileSync(row.file_path);
           avatarBase64 = `data:${row.mime_type};base64,${buffer.toString('base64')}`;
@@ -141,10 +158,9 @@ export const GET: APIRoute = async ({ request }) => {
       try {
         const response = await fetch(gambarUrl);
         if (response.ok) {
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          
-          // Detect mime type from file signature magic bytes
+          const buffer = Buffer.from(await response.arrayBuffer());
+
+          // Detect mime type from magic bytes
           let contentType = response.headers.get('content-type') || 'image/png';
           if (buffer.length > 3 && buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46) {
             contentType = 'image/gif';
@@ -153,9 +169,8 @@ export const GET: APIRoute = async ({ request }) => {
           } else if (buffer.length > 2 && buffer[0] === 0xFF && buffer[1] === 0xD8) {
             contentType = 'image/jpeg';
           }
-          
-          const base64 = buffer.toString('base64');
-          avatarBase64 = `data:${contentType};base64,${base64}`;
+
+          avatarBase64 = `data:${contentType};base64,${buffer.toString('base64')}`;
         }
       } catch (error) {
         console.error('Failed to fetch user avatar from url:', gambarUrl, error);
@@ -163,291 +178,275 @@ export const GET: APIRoute = async ({ request }) => {
     }
   }
 
-  // Generate QR Code path
+  // QR code path — square; in landscape its side tracks the photo height.
+  const AVATAR_BOX = isLandscape
+    ? { x: 32, y: 68, w: 116, h: 155 }
+    : { x: 226, y: 85, w: 156, h: 295 };
+  const qrSide = isLandscape ? AVATAR_BOX.h : 130;
+  const qrX = isLandscape ? 588 - qrSide : 38;
+
   let qrPath = '';
-  let qrScale = 4.4; 
-  const qrTargetSize = isLandscape ? 116 : 110;
+  let qrScale = 4.4;
   try {
     const qrSvg = await QRCode.toString(qrText, {
       type: 'svg',
       margin: 0,
-      color: {
-        dark: '#111111',
-        light: '#ffffff'
-      }
+      color: { dark: qrInk, light: '#ffffff' }
     });
 
     const viewBoxMatch = qrSvg.match(/viewBox="0 0 (\d+) (\d+)"/);
     const qrGridSize = viewBoxMatch ? parseInt(viewBoxMatch[1], 10) : 25;
-    qrScale = qrTargetSize / qrGridSize;
+    // always exactly 4 modules of quiet zone per side, whatever the module count
+    qrScale = qrSide / (qrGridSize + 8);
 
     const paths = qrSvg.match(/<path[^>]+>/g) || [];
     const strokePath = paths.find(p => p.includes('stroke='));
     const dMatch = strokePath ? strokePath.match(/d="([^"]+)"/) : null;
-    
-    if (dMatch) {
-      qrPath = dMatch[1];
-    }
+
+    if (dMatch) qrPath = dMatch[1];
   } catch (err) {
     console.error('Error generating QR code:', err);
   }
 
-  // Calculate dynamic font size for name if too long
-  let nameFontSize = 24;
-  if (uppercasedNama.length > 15) {
-    nameFontSize = Math.max(16, 24 - (uppercasedNama.length - 15) * 0.4);
+  // quiet zone actually drawn = 4 modules, same number the scale was computed with
+  const qrPad = 4 * qrScale;
+
+  // Dynamic font size for long names
+  let nameFontSize = isLandscape ? 24 : 26;
+  if (escapedNama.length > 16) {
+    nameFontSize = Math.max(16, nameFontSize - (escapedNama.length - 16) * 0.45);
   }
 
-  // Word-wrap long names to prevent collisions with the photo card
-  const maxChars = isLandscape ? 18 : 12;
-  const nameLinesRaw = wrapText(uppercasedNama, maxChars);
-  const nameLineHeight = nameFontSize * 1.05;
-  const nameOffset = (nameLinesRaw.length - 1) * nameLineHeight;
+  // Word-wrap long names so they never collide with the photo
+  const nameLinesRaw = wrapText(nama, isLandscape ? 18 : 13);
+  const nameLineHeight = nameFontSize * 1.08;
+  const nameBlockH = nameLinesRaw.length * nameLineHeight;
 
-  // Define Theme Color Variables
-  const strokeColor = isDark ? '#ffffff' : '#111111';
-  const shadowColor = isDark ? '#ffffff' : '#111111';
-  const textColor = isDark ? '#ffffff' : '#111111';
-  const subtitleColor = isDark ? '#60a5fa' : '#3a86c8';
-  const cardBgColor = isDark ? '#1e1e1e' : '#ffffff';
-  const barBgColor = isDark ? '#262626' : '#ffffff';
-  const gridStroke = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(17, 17, 17, 0.05)';
+  // Tags — justified rows inside the left column: every row closes on the same
+  // right rail, slack is shared between chips, and a too-long label shrinks its
+  // own type instead of crossing into the portrait.
+  const TAG_GAP = 6;
+  const TAG_H = 20;
+  const TAG_ROW_H = 26;
+  const tagX0 = isLandscape ? 176 : 38;
+  const tagX1 = isLandscape ? qrX - 12 : 210;
+  const tagBudget = tagX1 - tagX0;
+  const tagCharW = 6.9; // 9.5px mono advance + 1.2 tracking
+  const chipWidth = (label: string) => Math.max(44, label.length * tagCharW + 16);
+
+  const labels = tags.map(t => t.toUpperCase());
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let rowWidth = 0;
+  for (const label of labels) {
+    const w = chipWidth(label);
+    const grown = row.length ? rowWidth + TAG_GAP + w : w;
+    if (row.length && grown > tagBudget) {
+      rows.push(row);
+      row = [label];
+      rowWidth = w;
+    } else {
+      row.push(label);
+      rowWidth = grown;
+    }
+  }
+  if (row.length) rows.push(row);
+
+  // Role wraps inside the text column (never under the photo/QR): 8.1px per char
+  // at 10.5px mono + 1.8 tracking. Line count is bounded later by the photo band.
+  const roleRight = (isLandscape ? qrX : AVATAR_BOX.x) - 8; // stop short of the QR/photo
+  const roleMaxChars = Math.max(8, Math.floor(((roleRight - (isLandscape ? 190 : 52))) / 8.1));
+  const roleLinesRaw = wrapText(role.toUpperCase(), roleMaxChars);
+  const ROLE_LINE_H = 14;
+  const roleBlockH = () => Math.max(1, roleLinesRaw.length) * ROLE_LINE_H;
+
+  // --- vertical rhythm: the left stack is justified against the photo's height.
+  // Few blocks → big gaps, many blocks → gaps tighten, overflow folds into "+N".
+  const bandTop = isLandscape ? 68 : 85;
+  const bandBottom = isLandscape ? 223 : 380;
+  const band = bandBottom - bandTop;
+  const qrSize = isLandscape ? 124 : 130;
+  const gapCount = isLandscape ? 1 : 2; // name+role read as one block
+  const ROLE_GAP = 6;                   // fixed: role hugs the name
+  const tagsBlockH = () => rows.length * TAG_ROW_H - (TAG_ROW_H - TAG_H);
+  const stackH = () => nameBlockH + ROLE_GAP + roleBlockH() + tagsBlockH() + (isLandscape ? 0 : qrSize);
+
+  const MIN_GAP = 6;
+  while (rows.length > 1 && band - stackH() < MIN_GAP * gapCount) {
+    rows.pop();
+    const tail = rows[rows.length - 1];
+    const shownBefore = rows.slice(0, -1).reduce((n, r) => n + r.length, 0) + tail.length - 1;
+    tail[tail.length - 1] = `+${labels.length - shownBefore}`;
+  }
+  while (roleLinesRaw.length > 1 && band - stackH() < MIN_GAP * gapCount) {
+    roleLinesRaw.pop();
+    roleLinesRaw[roleLinesRaw.length - 1] = roleLinesRaw[roleLinesRaw.length - 1].slice(0, -1) + '…';
+  }
+
+  const ROLE_H = roleBlockH();
+  const gap = Math.max(MIN_GAP, (band - stackH()) / gapCount);
+  const nameY = bandTop;
+  const roleY = nameY + nameBlockH + ROLE_GAP;
+  const qrY = isLandscape ? bandTop : roleY + ROLE_H + gap;
+  const tagTop = isLandscape ? roleY + ROLE_H + gap : qrY + qrSize + gap;
+  const nameBaseline = nameY + nameFontSize * 0.72; // cap height ≈ top of the block
+  const roleBaseline = roleY + 10;
+
+  let roleSvg = '';
+  (roleLinesRaw.length ? roleLinesRaw : ['']).forEach((line, i) => {
+    const safe = line.length > roleMaxChars ? line.slice(0, roleMaxChars - 1) + '…' : line;
+    roleSvg += `<text x="${isLandscape ? 190 : 52}" y="${(roleBaseline + i * ROLE_LINE_H).toFixed(2)}" class="mono" font-weight="400" font-size="10.5" fill="${c.muted}" letter-spacing="1.8">${escapeXml(safe)}</text>\n      `;
+  });
 
   let nameSvg = '';
   nameLinesRaw.forEach((line, i) => {
-    const escapedLine = escapeXml(line);
-    const lineY = (isLandscape ? 79 : 98) + (i * nameLineHeight);
-    nameSvg += `<text x="${isLandscape ? 157 : 33}" y="${lineY}" class="font-poppins" font-weight="900" font-size="${nameFontSize}" fill="${textColor}" letter-spacing="-0.5">${escapedLine}</text>\n      `;
+    const lineY = nameBaseline + (i * nameLineHeight);
+    nameSvg += `<text x="${isLandscape ? 176 : 38}" y="${lineY.toFixed(2)}" class="display" font-weight="600" font-size="${nameFontSize}" fill="${c.text}" letter-spacing="-0.3">${escapeXml(line)}</text>\n      `;
   });
 
-  // Define Tag Colors
-  const colors = isDark 
-    ? ['#3b82f6', '#f43f5e', '#10b981', '#d946ef'] 
-    : ['#a2c2fc', '#fca2a2', '#a2fca2', '#fca2fc']; 
-  const tagTextColor = isDark ? '#ffffff' : '#111111';
-
-  // Calculate dynamic positioning for Tags (shifted by nameOffset)
-  const tagLimitX = isLandscape ? 430 : 200;
-  let curX = isLandscape ? 157 : 33;
-  let curY = isLandscape ? 119 + nameOffset : 290 + nameOffset;
   let tagsSvg = '';
-
-  tags.forEach((tag, index) => {
-    const uppercasedTag = tag.toUpperCase();
-    const tagW = Math.max(50, uppercasedTag.length * 7 + 22);
-    if (curX + tagW > tagLimitX) {
-      curX = isLandscape ? 157 : 33;
-      curY += 28;
-    }
-    const color = colors[index % colors.length];
-    const escapedTag = escapeXml(uppercasedTag);
-    tagsSvg += `
+  rows.forEach((r, i) => {
+    const y = tagTop + i * TAG_ROW_H;
+    const natural = r.reduce((sum, label) => sum + chipWidth(label), 0) + TAG_GAP * (r.length - 1);
+    const widen = Math.max(0, tagBudget - natural) / r.length;
+    let x = tagX0;
+    for (const label of r) {
+      const w = Math.min(tagBudget, chipWidth(label) + widen);
+      // 0.726 ≈ per-char width of the mono face at 1px, tracking included
+      const fitted = Math.min(9.5, (w - 16) / (label.length * 0.726));
+      const fontSize = Math.max(7, fitted);
+      // absurdly long single label: shorten rather than drop below 7px type
+      const shown = fitted >= 7 ? label : label.slice(0, Math.floor((w - 16) / (fontSize * 0.726)) - 1) + '…';
+      tagsSvg += `
       <g>
-        <rect x="${curX}" y="${curY}" width="${tagW}" height="22" rx="11" fill="${color}" stroke="${strokeColor}" stroke-width="2" />
-        <text x="${curX + tagW/2}" y="${curY + 11}" font-family="'Poppins', system-ui, -apple-system, sans-serif" font-weight="700" font-size="10.5" fill="${tagTextColor}" text-anchor="middle" dominant-baseline="middle" letter-spacing="0.5">${escapedTag}</text>
+        <rect x="${x.toFixed(2)}" y="${y.toFixed(2)}" width="${w.toFixed(2)}" height="${TAG_H}" rx="2" fill="none" stroke="${c.chip}" stroke-width="1" />
+        <text x="${(x + w / 2).toFixed(2)}" y="${(y + TAG_H / 2).toFixed(2)}" class="mono" font-weight="400" font-size="${fontSize.toFixed(2)}" fill="${c.muted}" text-anchor="middle" dominant-baseline="middle" letter-spacing="1.2">${escapeXml(shown)}</text>
       </g>
     `;
-    curX += tagW + 6;
+      x += w + TAG_GAP;
+    }
   });
 
-  // Dynamic Alignment calculations for footer text/icons inside the bar (justify-between alignment)
-  const igTextWidth = ig.length * 7.5 + 24; 
-  const webTextWidth = website.length * 7.5 + 24;
+  // footer alignment: ig pinned left, website right-aligned to the same rail as the QR
+  const monoAdvance = 6.3; // JetBrains Mono advance at 10.5px
+  const igGroupX = isLandscape ? 32 : 38;
+  const footerEndX = isLandscape ? 588 : 382;
+  const webTextWidth = website.length * monoAdvance;
+  const footerY = isLandscape ? 252 : 421;
 
-  let igGroupX = 0;
-  let webGroupX = 0;
+  // shared glyphs: instagram mark + globe, hairline stroke
+  const socialGlyphs = (x: number, y: number) => `<g transform="translate(${x}, ${y})">
+        <rect x="0" y="2" width="14" height="14" rx="4" stroke="${c.muted}" stroke-width="1.4" fill="none" />
+        <circle cx="7" cy="9" r="3" stroke="${c.muted}" stroke-width="1.4" fill="none" />
+        <circle cx="11" cy="5" r="0.9" fill="${c.muted}" />
+      </g>`;
 
-  if (isLandscape) {
-    igGroupX = 157 + 24; // 24px padding from left edge of footer bar
-    webGroupX = 583 - 24 - webTextWidth; // 24px padding from right edge of footer bar
-  } else {
-    igGroupX = 33 + 20; // 20px padding from left edge of footer bar
-    webGroupX = 377 - 20 - webTextWidth; // 20px padding from right edge of footer bar
-  }
+  const websiteGlyph = (x: number, y: number) => `<g transform="translate(${x}, ${y})">
+        <circle cx="7" cy="9" r="7" stroke="${c.muted}" stroke-width="1.4" fill="none" />
+        <path d="M7 2 C10 5, 10 13, 7 16 C4 13, 4 5, 7 2" stroke="${c.muted}" stroke-width="1.1" fill="none" />
+        <path d="M0 9h14" stroke="${c.muted}" stroke-width="1.1" />
+      </g>`;
 
-  // --- SVG View Templates ---
+  const styleBlock = `
+      <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap');
+        .display { font-family: 'Fraunces', Georgia, 'Times New Roman', serif; }
+        .mono { font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace; }
+      </style>`;
+
+  const avatarPattern = (x: number, y: number, w: number, h: number, origin: string) =>
+    avatarBase64
+      ? (avatarBase64.startsWith('data:image/gif')
+        ? `<image href="${avatarBase64}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" />`
+        : `<pattern id="avatar-pattern" x="${x}" y="${y}" width="${w}" height="${h}" patternUnits="userSpaceOnUse">
+          <image href="${avatarBase64}" xlink:href="${avatarBase64}" x="0" y="0" width="${w}" height="${h}" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="${origin}" />
+        </pattern>`)
+      : '';
+
+  const avatarFill = avatarBase64 && avatarBase64.startsWith('data:image/gif') ? 'none' : 'url(#avatar-pattern)';
+
+  const socialFooter = (startX: number, endX: number) => `<!-- footer rule + socials -->
+      <rect x="${startX}" y="${footerY}" width="${endX - startX}" height="1" fill="${c.line}" />
+      <g transform="translate(${igGroupX}, ${footerY + 9})">
+        ${socialGlyphs(0, 0)}
+        <text x="26" y="9" class="mono" font-weight="400" font-size="10.5" fill="${c.text}" dominant-baseline="middle">${escapedIg}</text>
+      </g>
+      <g transform="translate(${footerEndX}, ${footerY + 9})">
+        <g transform="translate(${-(webTextWidth + 26)}, 0)">
+          ${websiteGlyph(0, 0)}
+        </g>
+        <text x="0" y="9" class="mono" font-weight="400" font-size="10.5" fill="${c.text}" text-anchor="end" dominant-baseline="middle">${escapedWebsite}</text>
+      </g>`;
+
   let svgContent = '';
 
   if (isLandscape) {
-    // Landscape SVG layout (620x320)
+    // Landscape SVG layout (620x320) — symmetric 22px inner padding, single rail
     svgContent = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 620 320" width="620" height="320" fill="none">
       <defs>
-        <!-- Background grid pattern -->
-        <pattern id="card-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${gridStroke}" stroke-width="1"/>
-        </pattern>
-        
-        <!-- Avatar image pattern (acts as a robust clipping container with zoom/pan transforms) -->
-        ${avatarBase64 ? (avatarBase64.startsWith('data:image/gif') ? `
-        <image href="${avatarBase64}" x="21" y="57" width="120" height="200" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" />` : `
-        <pattern id="avatar-pattern" x="21" y="57" width="120" height="200" patternUnits="userSpaceOnUse">
-          <image href="${avatarBase64}" xlink:href="${avatarBase64}" x="0" y="0" width="120" height="200" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="60 100" />
-        </pattern>`) : ''}
-
-        <!-- Dark Mode Invert Filter for Logo -->
-        ${isDark ? `
-        <filter id="invert-logo">
-          <feColorMatrix type="matrix" values="
-            -1  0  0  0  1
-             0 -1  0  0  1
-             0  0 -1  0  1
-             0  0  0  1  0" />
-        </filter>` : ''}
+        ${avatarPattern(32, 68, 116, 155, '58 77.5')}
       </defs>
+      ${styleBlock}
 
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;900&amp;display=swap');
-        .font-poppins { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
-      </style>
+      <!-- card body -->
+      <rect x="10" y="10" width="600" height="300" rx="2" fill="${c.card}" stroke="${c.line}" stroke-width="1" />
 
-      <!-- Card Shadow -->
-      <rect x="15" y="15" width="600" height="300" rx="16" fill="${shadowColor}" />
+      <!-- header: accent rule, wordmark, meta -->
+      <rect x="32" y="36" width="26" height="2" fill="${accent}" />
+      <text x="32" y="52" class="mono" font-weight="500" font-size="${brandFontSize}" fill="${c.muted}" letter-spacing="2.4">${escapedBrand}</text>
+      <text x="588" y="52" class="mono" font-weight="400" font-size="10" fill="${c.muted}" letter-spacing="2" text-anchor="end">${escapedMeta}</text>
 
-      <!-- Card Body Background -->
-      <rect x="5" y="5" width="600" height="300" rx="16" fill="${cardBgColor}" />
-      
-      <!-- Card Body Grid Overlay & Main Border -->
-      <rect x="5" y="5" width="600" height="300" rx="16" fill="url(#card-grid)" stroke="${strokeColor}" stroke-width="3" />
+      <!-- avatar -->
+      <rect x="32" y="68" width="116" height="155" rx="2" fill="${imgBg}" />
+      <rect x="32" y="68" width="116" height="155" rx="2" fill="${avatarFill}" stroke="${c.line}" stroke-width="1" />
 
-      <!-- Left Column (Avatar Image) -->
-      <!-- Image Shadow -->
-      <rect x="25" y="61" width="120" height="200" rx="12" fill="${shadowColor}" />
-      <!-- Image Background (Fills with custom color imgBg) -->
-      <rect x="21" y="57" width="120" height="200" rx="12" fill="${imgBg}" />
-      <!-- Image body filled with pattern to guarantee perfect overflow clipping in sandboxed contexts -->
-      <rect x="21" y="57" width="120" height="200" rx="12" fill="${avatarBase64 && avatarBase64.startsWith('data:image/gif') ? 'none' : 'url(#avatar-pattern)'}" stroke="${strokeColor}" stroke-width="3" />
-
-      <!-- Middle Column (Profile Info) -->
-      <!-- Logo -->
-      <g transform="translate(205, 15)">
-        ${logoBase64 ? `<image href="${logoBase64}" width="200" height="42" preserveAspectRatio="xMidYMid meet" ${isDark ? 'filter="url(#invert-logo)" style="filter: invert(1) brightness(2);"' : ''} />` : ''}
-      </g>
-      <!-- Name -->
+      <!-- name + role -->
       ${nameSvg.trim()}
-      <!-- Role -->
-      <text x="157" y="${99 + nameOffset}" class="font-poppins" font-weight="600" font-size="13" fill="${subtitleColor}" letter-spacing="0.5">${escapedRole}</text>
+      <circle cx="180" cy="${(roleBaseline - 3.5).toFixed(2)}" r="3" fill="${accent}" />
+      ${roleSvg.trim()}
 
-      <!-- Dynamic Tags -->
+      <!-- tags -->
       ${tagsSvg}
 
-      <!-- Social Footer Bar -->
-      <!-- Shadow -->
-      <rect x="161" y="211" width="426" height="44" rx="12" fill="${shadowColor}" />
-      <!-- Body -->
-      <rect x="157" y="207" width="426" height="44" rx="12" fill="${barBgColor}" stroke="${strokeColor}" stroke-width="3" />
+      <!-- qr -->
+      <rect x="${qrX}" y="${AVATAR_BOX.y}" width="${qrSide}" height="${qrSide}" rx="2" fill="${c.qrBox}" stroke="${c.line}" stroke-width="1" />
+      ${qrPath ? `<path d="${qrPath}" stroke="${qrInk}" stroke-width="1" shape-rendering="crispEdges" transform="translate(${(qrX + qrPad).toFixed(2)}, ${(AVATAR_BOX.y + qrPad).toFixed(2)}) scale(${qrScale.toFixed(3)})" />` : ''}
 
-      <!-- Instagram Handle -->
-      <g transform="translate(${igGroupX}, 217)">
-        <rect x="0" y="2" width="20" height="20" rx="5" ry="5" stroke="${strokeColor}" stroke-width="2.5" fill="none" />
-        <circle cx="10" cy="12" r="4" stroke="${strokeColor}" stroke-width="2.5" fill="none" />
-        <circle cx="15" cy="7" r="1" fill="${strokeColor}" />
-        <text x="28" y="12" class="font-poppins" font-weight="700" font-size="12" fill="${textColor}" dominant-baseline="middle">${escapedIg}</text>
-      </g>
-
-      <!-- Website Link -->
-      <g transform="translate(${webGroupX}, 217)">
-        <circle cx="10" cy="12" r="10" stroke="${strokeColor}" stroke-width="2.5" fill="none" />
-        <path d="M10 2 C14.5 6, 14.5 18, 10 22 C5.5 18, 5.5 6, 10 2" stroke="${strokeColor}" stroke-width="2" fill="none" />
-        <path d="M0 12h20" stroke="${strokeColor}" stroke-width="2" />
-        <text x="28" y="12" class="font-poppins" font-weight="700" font-size="12" fill="${textColor}" dominant-baseline="middle">${escapedWebsite}</text>
-      </g>
-
-      <!-- Right Column (QR Code) -->
-      <!-- Box Shadow -->
-      <rect x="451" y="61" width="136" height="136" rx="12" fill="${shadowColor}" />
-      <!-- Box Body -->
-      <rect x="447" y="57" width="136" height="136" rx="12" fill="#ffffff" stroke="${strokeColor}" stroke-width="3" />
-      <!-- Dynamic QR Code Path -->
-      ${qrPath ? `<path d="${qrPath}" stroke="#111111" stroke-width="1" shape-rendering="crispEdges" transform="translate(457, 67) scale(${qrScale})" />` : ''}
+      ${socialFooter(32, 588)}
     </svg>`;
   } else {
-    // Portrait SVG layout (420x490)
+    // Portrait SVG layout (420x490) — 28px inner padding
     svgContent = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 420 490" width="420" height="490" fill="none">
       <defs>
-        <!-- Background grid pattern -->
-        <pattern id="card-grid" width="20" height="20" patternUnits="userSpaceOnUse">
-          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="${gridStroke}" stroke-width="1"/>
-        </pattern>
-        
-        <!-- Avatar image pattern (acts as a robust clipping container with zoom/pan transforms) -->
-        ${avatarBase64 ? (avatarBase64.startsWith('data:image/gif') ? `
-        <image href="${avatarBase64}" x="221" y="80" width="156" height="295" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" />` : `
-        <pattern id="avatar-pattern" x="221" y="80" width="156" height="295" patternUnits="userSpaceOnUse">
-          <image href="${avatarBase64}" xlink:href="${avatarBase64}" x="0" y="0" width="156" height="295" preserveAspectRatio="xMidYMax slice" transform="translate(${imgX}, ${imgY}) scale(${imgScale})" transform-origin="78 147.5" />
-        </pattern>`) : ''}
-
-        <!-- Dark Mode Invert Filter for Logo -->
-        ${isDark ? `
-        <filter id="invert-logo">
-          <feColorMatrix type="matrix" values="
-            -1  0  0  0  1
-             0 -1  0  0  1
-             0  0 -1  0  1
-             0  0  0  1  0" />
-        </filter>` : ''}
+        ${avatarPattern(226, 85, 156, 295, '78 147.5')}
       </defs>
+      ${styleBlock}
 
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;900&amp;display=swap');
-        .font-poppins { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
-      </style>
+      <!-- card body -->
+      <rect x="10" y="15" width="400" height="460" rx="2" fill="${c.card}" stroke="${c.line}" stroke-width="1" />
 
-      <!-- Card Shadow -->
-      <rect x="15" y="20" width="400" height="460" rx="16" fill="${shadowColor}" />
+      <!-- header: accent rule, wordmark, meta -->
+      <rect x="38" y="40" width="26" height="2" fill="${accent}" />
+      <text x="38" y="56" class="mono" font-weight="500" font-size="${brandFontSize}" fill="${c.muted}" letter-spacing="2.4">${escapedBrand}</text>
+      <text x="382" y="56" class="mono" font-weight="400" font-size="10" fill="${c.muted}" letter-spacing="2" text-anchor="end">${escapedMeta}</text>
 
-      <!-- Card Body Background -->
-      <rect x="5" y="10" width="400" height="460" rx="16" fill="${cardBgColor}" />
-      
-      <!-- Card Body Grid Overlay & Main Border -->
-      <rect x="5" y="10" width="400" height="460" rx="16" fill="url(#card-grid)" stroke="${strokeColor}" stroke-width="3" />
-
-      <!-- Logo -->
-      <g transform="translate(85, 20)">
-        ${logoBase64 ? `<image href="${logoBase64}" width="240" height="52" preserveAspectRatio="xMidYMid meet" ${isDark ? 'filter="url(#invert-logo)" style="filter: invert(1) brightness(2);"' : ''} />` : ''}
-      </g>
-
-      <!-- Left Column -->
-      <!-- Name -->
+      <!-- name + role -->
       ${nameSvg.trim()}
-      <!-- Role -->
-      <text x="33" y="${118 + nameOffset}" class="font-poppins" font-weight="600" font-size="13" fill="${subtitleColor}" letter-spacing="0.5">${escapedRole}</text>
+      <circle cx="42" cy="${(roleBaseline - 3.5).toFixed(2)}" r="3" fill="${accent}" />
+      ${roleSvg.trim()}
 
-      <!-- QR Code border & box -->
-      <rect x="33" y="${145 + nameOffset}" width="130" height="130" rx="12" fill="#ffffff" stroke="${strokeColor}" stroke-width="3" />
-      <!-- Dynamic QR Code Path with crisp edge rendering -->
-      ${qrPath ? `<path d="${qrPath}" stroke="#111111" stroke-width="1" shape-rendering="crispEdges" transform="translate(43, ${155 + nameOffset}) scale(${qrScale})" />` : ''}
+      <!-- qr -->
+      <rect x="${qrX}" y="${qrY.toFixed(2)}" width="${qrSide}" height="${qrSide}" rx="2" fill="${c.qrBox}" stroke="${c.line}" stroke-width="1" />
+      ${qrPath ? `<path d="${qrPath}" stroke="${qrInk}" stroke-width="1" shape-rendering="crispEdges" transform="translate(${(qrX + qrPad).toFixed(2)}, ${(qrY + qrPad).toFixed(2)}) scale(${qrScale.toFixed(3)})" />` : ''}
 
-      <!-- Dynamic Tags -->
+      <!-- tags -->
       ${tagsSvg}
 
-      <!-- Right Column (Avatar Image) -->
-      <!-- Image Shadow -->
-      <rect x="225" y="84" width="156" height="295" rx="12" fill="${shadowColor}" />
-      <!-- Image Background (Fills with custom color imgBg) -->
-      <rect x="221" y="80" width="156" height="295" rx="12" fill="${imgBg}" />
-      <!-- Image body filled with pattern to guarantee perfect overflow clipping in sandboxed contexts -->
-      <rect x="221" y="80" width="156" height="295" rx="12" fill="url(#avatar-pattern)" stroke="${strokeColor}" stroke-width="3" />
+      <!-- avatar -->
+      <rect x="${AVATAR_BOX.x}" y="${AVATAR_BOX.y}" width="${AVATAR_BOX.w}" height="${AVATAR_BOX.h}" rx="2" fill="${imgBg}" />
+      <rect x="${AVATAR_BOX.x}" y="${AVATAR_BOX.y}" width="${AVATAR_BOX.w}" height="${AVATAR_BOX.h}" rx="2" fill="${avatarFill}" stroke="${c.line}" stroke-width="1" />
 
-      <!-- Bottom Social Footer Bar Shadow -->
-      <rect x="37" y="414" width="344" height="44" rx="12" fill="${shadowColor}" />
-      <!-- Bottom Social Footer Bar Body -->
-      <rect x="33" y="410" width="344" height="44" rx="12" fill="${barBgColor}" stroke="${strokeColor}" stroke-width="3" />
-
-      <!-- Instagram Handle -->
-      <g transform="translate(${igGroupX}, 420)">
-        <rect x="0" y="2" width="20" height="20" rx="5" ry="5" stroke="${strokeColor}" stroke-width="2.5" fill="none" />
-        <circle cx="10" cy="12" r="4" stroke="${strokeColor}" stroke-width="2.5" fill="none" />
-        <circle cx="15" cy="7" r="1" fill="${strokeColor}" />
-        <text x="28" y="12" class="font-poppins" font-weight="700" font-size="12" fill="${textColor}" dominant-baseline="middle">${escapedIg}</text>
-      </g>
-
-      <!-- Website Link -->
-      <g transform="translate(${webGroupX}, 420)">
-        <circle cx="10" cy="12" r="10" stroke="${strokeColor}" stroke-width="2.5" fill="none" />
-        <path d="M10 2 C14.5 6, 14.5 18, 10 22 C5.5 18, 5.5 6, 10 2" stroke="${strokeColor}" stroke-width="2" fill="none" />
-        <path d="M0 12h20" stroke="${strokeColor}" stroke-width="2" />
-        <text x="28" y="12" class="font-poppins" font-weight="700" font-size="12" fill="${textColor}" dominant-baseline="middle">${escapedWebsite}</text>
-      </g>
+      ${socialFooter(38, 382)}
     </svg>`;
   }
 

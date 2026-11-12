@@ -1,0 +1,78 @@
+@import 'tailwindcss';
+
+/* Tokens mirror portooooo/DESIGN.md — single source of truth, no raw hex elsewhere. */
+@theme {
+  --color-paper: #faf7f2;
+  --color-paper-2: #f1ede5;
+  --color-ink: #1c1917;
+  --color-ink-2: #57534e;
+  --color-line: #e2dcd0;
+  --color-accent: #e4572e;
+
+  --font-display: 'Fraunces', 'Georgia', serif;
+  --font-body: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+body {
+  @apply bg-paper font-body text-ink antialiased;
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 3px;
+}
+
+/* form controls: hairline, paper, no native chrome */
+.field {
+  @apply w-full border border-line bg-paper px-3 py-2 text-sm text-ink outline-none;
+}
+.field:focus {
+  @apply border-ink bg-white;
+}
+.label {
+  @apply font-mono text-[11px] uppercase tracking-widest text-ink-2;
+}
+.btn {
+  @apply inline-flex items-center justify-center gap-2 border border-ink bg-ink px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-paper transition-colors;
+}
+.btn:hover {
+  @apply bg-transparent text-ink;
+}
+.btn-ghost {
+  @apply inline-flex items-center justify-center border border-line bg-paper px-4 py-2 font-mono text-[11px] uppercase tracking-widest text-ink-2 transition-colors;
+}
+.btn-ghost:hover {
+  @apply border-ink text-ink;
+}
+input[type='range'] {
+  @apply h-1 w-full cursor-pointer appearance-none bg-line accent-ink;
+}
+input[type='range']::-webkit-slider-thumb {
+  @apply h-3.5 w-3.5 appearance-none rounded-full border border-ink bg-paper;
+}
+input[type='checkbox'].check {
+  @apply h-4 w-4 shrink-0 cursor-pointer appearance-none border border-ink bg-paper;
+}
+input[type='checkbox'].check:checked {
+  background-color: var(--color-accent);
+  box-shadow: inset 0 0 0 2px var(--color-paper);
+}
+input[type='color'].swatch {
+  @apply h-9 w-14 cursor-pointer border border-line bg-paper p-0.5;
+}
+.swatch-btn {
+  @apply h-7 w-7 cursor-pointer border border-line transition-colors;
+}
+.swatch-btn:hover {
+  border-color: var(--color-ink);
+}
+.swatch-btn.is-active {
+  outline: 2px solid var(--color-ink);
+  outline-offset: 2px;
+}
